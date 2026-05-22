@@ -2,31 +2,22 @@ import { useEffect, useState, useRef } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Image, Dimensions, ScrollView, Animated,
-  NativeModules,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 import { Pin, PinStatus, Category } from '@pintrip/shared'
-
-// MapLibre — only load if the native module is registered (not available in Expo Go)
-let MapLibreGL: any = null
-const hasMapLibreNative = !!(NativeModules.MLRNModule ?? NativeModules.RCTMLNModule ?? NativeModules.MapLibreGL)
-if (hasMapLibreNative) {
-  try {
-    MapLibreGL = require('@maplibre/maplibre-react-native').default
-    MapLibreGL.setAccessToken(null)
-  } catch {}
-}
+import MapNative, { MapNativeRef } from '../../src/components/map/MapNative'
+import PinDetailInline from '../../src/components/map/PinDetailInline'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const MAP_HEIGHT_FULL = SCREEN_HEIGHT * 0.52
 const MAP_HEIGHT_COLLAPSED = 120
 const COLLAPSE_SCROLL_DISTANCE = 80
-
-const MAPTILER_STYLE = process.env.EXPO_PUBLIC_MAPTILER_STYLE_URL || ''
+const FLY_TO_DEBOUNCE_MS = 350
 
 const STATUS_FILTERS: { label: string; value: PinStatus | 'ALL' }[] = [
   { label: 'All', value: 'ALL' },
@@ -49,7 +40,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   CULTURE: '🏛️', STAY: '🏡', OFFBEAT: '🧭',
 }
 
-const STATUS_DOT_COLORS: Record<PinStatus, string> = {
+const STATUS_COLORS: Record<PinStatus, string> = {
   WISHLIST: colors.textTertiary,
   PLANNING: colors.accentAmber,
   VISITED: colors.accentGreen,
@@ -59,11 +50,7 @@ const STATUS_DOT_COLORS: Record<PinStatus, string> = {
 
 function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <TouchableOpacity
-      style={[styles.chip, active && styles.chipActive]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity style={[styles.chip, active && styles.chipActive]} onPress={onPress} activeOpacity={0.7}>
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
     </TouchableOpacity>
   )
@@ -71,9 +58,13 @@ function FilterChip({ label, active, onPress }: { label: string; active: boolean
 
 // ─── Pin card ─────────────────────────────────────────────────────────────────
 
-function PinCard({ pin, onPress }: { pin: Pin; onPress: () => void }) {
+function PinCard({ pin, onPress, selected }: { pin: Pin; onPress: () => void; selected: boolean }) {
   return (
-    <TouchableOpacity style={styles.pinCard} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.pinCard, selected && styles.pinCardSelected]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       {pin.sourceThumbnailUrl ? (
         <Image source={{ uri: pin.sourceThumbnailUrl }} style={styles.thumbnail} />
       ) : (
@@ -89,15 +80,14 @@ function PinCard({ pin, onPress }: { pin: Pin; onPress: () => void }) {
       </View>
       <View style={styles.pinMeta}>
         {pin.source !== 'MANUAL' && (
-          <Text style={styles.sourceBadge}>
-            {pin.source === 'INSTAGRAM' ? 'IG' : pin.source}
-          </Text>
+          <Text style={styles.sourceBadge}>{pin.source === 'INSTAGRAM' ? 'IG' : pin.source}</Text>
         )}
-        <View style={[styles.statusDot, { backgroundColor: STATUS_DOT_COLORS[pin.status] }]} />
+        <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[pin.status] }]} />
       </View>
     </TouchableOpacity>
   )
 }
+
 
 // ─── Home screen ─────────────────────────────────────────────────────────────
 
@@ -108,8 +98,10 @@ export default function HomeScreen() {
 
   const [statusFilter, setStatusFilter] = useState<PinStatus | 'ALL'>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<Category | 'ALL'>('ALL')
+  const [selectedPinId, setSelectedPinId] = useState<string | null>(null)
 
-  // RN built-in Animated for map collapse (works everywhere including Expo Go)
+  const mapRef = useRef<MapNativeRef>(null)
+  const flyToTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollY = useRef(new Animated.Value(0)).current
 
   const mapHeight = scrollY.interpolate({
@@ -132,46 +124,44 @@ export default function HomeScreen() {
     return true
   })
 
+  const selectedIndex = selectedPinId ? filteredPins.findIndex(p => p.id === selectedPinId) : -1
+  const selectedPin = selectedIndex >= 0 ? filteredPins[selectedIndex] : null
+
+  const selectPin = (pinId: string) => {
+    setSelectedPinId(pinId)
+    const pin = filteredPins.find(p => p.id === pinId)
+    if (!pin) return
+    // Debounce flyTo so rapid navigation doesn't thrash the map
+    if (flyToTimer.current) clearTimeout(flyToTimer.current)
+    flyToTimer.current = setTimeout(() => {
+      mapRef.current?.flyTo(pin.lng, pin.lat)
+    }, FLY_TO_DEBOUNCE_MS)
+  }
+
+  const clearSelection = () => {
+    setSelectedPinId(null)
+    if (flyToTimer.current) clearTimeout(flyToTimer.current)
+  }
+
+  const goToPrev = () => {
+    if (selectedIndex > 0) selectPin(filteredPins[selectedIndex - 1].id)
+  }
+
+  const goToNext = () => {
+    if (selectedIndex < filteredPins.length - 1) selectPin(filteredPins[selectedIndex + 1].id)
+  }
+
   return (
     <View style={styles.container}>
 
       {/* ── Map ─────────────────────────────────────────────── */}
       <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
-        {MapLibreGL && MAPTILER_STYLE ? (
-          <MapLibreGL.MapView
-            style={StyleSheet.absoluteFill}
-            styleURL={MAPTILER_STYLE}
-            compassEnabled={false}
-            logoEnabled={false}
-            attributionEnabled={false}
-          >
-            <MapLibreGL.Camera
-              defaultSettings={{
-                centerCoordinate: [78.9629, 20.5937],
-                zoomLevel: 4,
-              }}
-            />
-            {filteredPins.map((pin) => (
-              <MapLibreGL.MarkerView key={pin.id} coordinate={[pin.lng, pin.lat]}>
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: '/(modals)/pin-detail', params: { id: pin.id } })}
-                >
-                  <View style={[styles.mapPin, { backgroundColor: STATUS_DOT_COLORS[pin.status as PinStatus] }]} />
-                </TouchableOpacity>
-              </MapLibreGL.MarkerView>
-            ))}
-          </MapLibreGL.MapView>
-        ) : (
-          <View style={styles.mapFallback}>
-            <Text style={styles.mapFallbackIcon}>🗺️</Text>
-            <Text style={styles.mapFallbackText}>
-              {hasMapLibreNative ? 'Loading map...' : 'Map available in development build'}
-            </Text>
-            {pins.length > 0 && (
-              <Text style={styles.mapFallbackSub}>{pins.length} pins saved</Text>
-            )}
-          </View>
-        )}
+        <MapNative
+          ref={mapRef}
+          pins={filteredPins}
+          selectedPinId={selectedPinId}
+          onPinPress={selectPin}
+        />
       </Animated.View>
 
       {/* ── FAB ─────────────────────────────────────────────── */}
@@ -185,69 +175,83 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* ── Pin list ─────────────────────────────────────────── */}
-      <Animated.ScrollView
-        style={styles.listSection}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
-      >
-        <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Your Pins</Text>
-          <View style={styles.pinCountBadge}>
-            <Text style={styles.pinCount}>{filteredPins.length}</Text>
-          </View>
-        </View>
-
-        {/* Status + category filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-          style={styles.chipsScroll}
+      {/* ── Bottom section: list OR detail panel ─────────────── */}
+      {selectedPin ? (
+        <PinDetailInline
+          pin={selectedPin}
+          index={selectedIndex}
+          total={filteredPins.length}
+          onClose={clearSelection}
+          onPrev={goToPrev}
+          onNext={goToNext}
+          insetBottom={insets.bottom}
+        />
+      ) : (
+        <Animated.ScrollView
+          style={styles.listSection}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         >
-          {STATUS_FILTERS.map((f) => (
-            <FilterChip
-              key={f.value}
-              label={f.label}
-              active={statusFilter === f.value}
-              onPress={() => setStatusFilter((prev) => prev === f.value ? 'ALL' : f.value)}
-            />
-          ))}
-          <View style={styles.chipDivider} />
-          {CATEGORY_FILTERS.map((f) => (
-            <FilterChip
-              key={f.value}
-              label={f.label}
-              active={categoryFilter === f.value}
-              onPress={() => setCategoryFilter((prev) => prev === f.value ? 'ALL' : f.value)}
-            />
-          ))}
-        </ScrollView>
-
-        {/* Empty state */}
-        {filteredPins.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              {pins.length === 0 ? 'No pins yet.' : 'No pins match this filter.'}
-            </Text>
-            <Text style={styles.emptySubText}>
-              {pins.length === 0
-                ? 'Share a travel reel to start building your map.'
-                : 'Try a different filter above.'}
-            </Text>
+          <View style={styles.listHeader}>
+            <Text style={styles.listTitle}>Your Pins</Text>
+            <View style={styles.pinCountBadge}>
+              <Text style={styles.pinCount}>{filteredPins.length}</Text>
+            </View>
           </View>
-        ) : (
-          filteredPins.map((pin) => (
-            <PinCard
-              key={pin.id}
-              pin={pin}
-              onPress={() => router.push({ pathname: '/(modals)/pin-detail', params: { id: pin.id } })}
-            />
-          ))
-        )}
-      </Animated.ScrollView>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsRow}
+            style={styles.chipsScroll}
+          >
+            {STATUS_FILTERS.map((f) => (
+              <FilterChip
+                key={f.value}
+                label={f.label}
+                active={statusFilter === f.value}
+                onPress={() => setStatusFilter((prev) => prev === f.value ? 'ALL' : f.value)}
+              />
+            ))}
+            <View style={styles.chipDivider} />
+            {CATEGORY_FILTERS.map((f) => (
+              <FilterChip
+                key={f.value}
+                label={f.label}
+                active={categoryFilter === f.value}
+                onPress={() => setCategoryFilter((prev) => prev === f.value ? 'ALL' : f.value)}
+              />
+            ))}
+          </ScrollView>
+
+          {filteredPins.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                {pins.length === 0 ? 'No pins yet.' : 'No pins match this filter.'}
+              </Text>
+              <Text style={styles.emptySubText}>
+                {pins.length === 0
+                  ? 'Share a travel reel to start building your map.'
+                  : 'Try a different filter above.'}
+              </Text>
+            </View>
+          ) : (
+            filteredPins.map((pin) => (
+              <PinCard
+                key={pin.id}
+                pin={pin}
+                selected={pin.id === selectedPinId}
+                onPress={() => selectPin(pin.id)}
+              />
+            ))
+          )}
+        </Animated.ScrollView>
+      )}
     </View>
   )
 }
@@ -258,14 +262,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary },
 
   mapContainer: { width: '100%', overflow: 'hidden', backgroundColor: colors.darkSurface },
-  mapFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing[2] },
-  mapFallbackIcon: { fontSize: 32 },
-  mapFallbackText: {
-    color: colors.textTertiary, fontFamily: 'DMSans-Regular',
-    fontSize: fontSizes.sm, textAlign: 'center', paddingHorizontal: spacing[6],
-  },
-  mapFallbackSub: { color: colors.textTertiary, fontFamily: 'IBMPlexMono-Regular', fontSize: fontSizes.xs },
-  mapPin: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: '#fff' },
 
   fabContainer: { position: 'absolute', right: spacing[5], zIndex: 20 },
   fab: {
@@ -300,6 +296,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, padding: spacing[3], marginHorizontal: spacing[4], marginBottom: spacing[2],
     ...shadows.card,
   },
+  pinCardSelected: {
+    borderWidth: 1.5, borderColor: colors.accentGreen,
+  },
   thumbnail: { width: 48, height: 48, borderRadius: radius.sm, marginRight: spacing[3] },
   thumbnailPlaceholder: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.bgSecondary, alignItems: 'center', justifyContent: 'center', marginRight: spacing[3] },
   categoryIcon: { fontSize: 22 },
@@ -309,4 +308,5 @@ const styles = StyleSheet.create({
   pinMeta: { alignItems: 'flex-end', gap: spacing[2], marginLeft: spacing[2] },
   sourceBadge: { fontSize: 10, fontFamily: 'IBMPlexMono-Regular', color: colors.textTertiary, backgroundColor: colors.bgSecondary, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
+
 })
