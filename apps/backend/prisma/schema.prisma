@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  name          String?
+  avatarUrl     String?
+  pushToken     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  pins          Pin[]
+  conversations Conversation[]
+}
+
+model Pin {
+  id                 String     @id @default(cuid())
+  userId             String
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name               String
+  city               String?
+  state              String?
+  country            String     @default("India")
+  lat                Float
+  lng                Float
+  googlePlaceId      String?
+
+  source             SourceType @default(MANUAL)
+  sourceUrl          String?
+  sourceThumbnailUrl String?
+  sourceCaption      String?
+
+  status             PinStatus  @default(WISHLIST)
+  category           Category   @default(NATURE)
+  notes              String?
+  visitedAt          DateTime?
+
+  aiConfidence       Float?
+  isManuallyVerified Boolean    @default(false)
+  rawTranscript      String?
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([lat, lng])
+}
+
+model UnresolvedPin {
+  id                 String   @id @default(cuid())
+  userId             String
+  sourceUrl          String
+  sourceThumbnailUrl String?
+  sourceCaption      String?
+  rawTranscript      String?
+  aiResponse         String?
+  createdAt          DateTime @default(now())
+}
+
+model DiscoverPlace {
+  id          String   @id @default(cuid())
+  name        String
+  city        String
+  state       String
+  country     String   @default("India")
+  lat         Float
+  lng         Float
+  description String?
+  photoUrl    String?
+  category    Category
+  tags        String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Json[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SourceType {
+  INSTAGRAM
+  YOUTUBE
+  MANUAL
+  DISCOVER
+}
+
+enum PinStatus {
+  WISHLIST
+  PLANNING
+  VISITED
+}
+
+enum Category {
+  NATURE
+  FOOD
+  ADVENTURE
+  CULTURE
+  STAY
+  OFFBEAT
+}

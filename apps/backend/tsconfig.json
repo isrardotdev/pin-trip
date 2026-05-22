@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "paths": {
+      "@pintrip/shared": ["../../packages/shared/src/types.ts"]
+    }
+  },
+  "include": ["src", "prisma"],
+  "exclude": ["node_modules", "dist"]
+}

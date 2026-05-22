@@ -1,0 +1,16 @@
+{
+  "name": "pintrip",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "db:migrate": "pnpm --filter backend prisma migrate dev",
+    "db:seed": "pnpm --filter backend prisma db seed",
+    "db:studio": "pnpm --filter backend prisma studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
