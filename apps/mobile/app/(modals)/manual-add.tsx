@@ -1,190 +1,203 @@
 import { useState } from 'react'
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
-  FlatList, ActivityIndicator, Alert,
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import axios from 'axios'
-import { usePinsStore } from '../../src/stores/pinsStore'
-import { colors, fontSizes, spacing, radius } from '../../src/constants/theme'
-
-interface NominatimResult {
-  place_id: number
-  display_name: string
-  lat: string
-  lon: string
-  address: {
-    city?: string
-    town?: string
-    village?: string
-    state?: string
-    country?: string
-  }
-}
+import { Ionicons } from '@expo/vector-icons'
+import { api } from '../../src/lib/api'
+import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 export default function ManualAddModal() {
   const router = useRouter()
-  const { addPin } = usePinsStore()
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<NominatimResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [url, setUrl] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const search = async () => {
-    if (!query.trim()) return
-    setIsSearching(true)
+  const isValidUrl = url.trim().length > 0 && (
+    url.includes('instagram.com') ||
+    url.includes('youtube.com') ||
+    url.includes('youtu.be') ||
+    url.includes('reel') ||
+    url.startsWith('http')
+  )
+
+  const handlePin = async () => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    setError('')
+    setIsLoading(true)
     try {
-      const res = await axios.get<NominatimResult[]>('https://nominatim.openstreetmap.org/search', {
-        params: { q: query, format: 'json', limit: 8, addressdetails: 1 },
-        headers: { 'User-Agent': 'PinTrip/1.0' },
+      const res = await api.post('/pins/parse', { url: trimmed })
+      const { jobId } = res.data.data
+      router.replace({
+        pathname: '/(modals)/pin-confirm',
+        params: { jobId, url: trimmed },
       })
-      setResults(res.data)
-    } catch {
-      Alert.alert('Search failed', 'Please try again')
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const handleSelect = async (result: NominatimResult) => {
-    setIsSaving(true)
-    try {
-      const addr = result.address
-      const city = addr.city || addr.town || addr.village || ''
-      const nameParts = result.display_name.split(', ')
-      const name = nameParts[0] || query
-
-      await addPin({
-        name,
-        city,
-        state: addr.state,
-        country: addr.country || 'India',
-        lat: parseFloat(result.lat),
-        lng: parseFloat(result.lon),
-        source: 'MANUAL',
-        status: 'WISHLIST',
-        category: 'NATURE',
-      })
-
-      router.back()
-    } catch {
-      Alert.alert('Error', 'Failed to save pin. Please try again.')
-    } finally {
-      setIsSaving(false)
+    } catch (e: any) {
+      const msg = e?.response?.data?.error || e?.message || 'Something went wrong'
+      setError(msg)
+      setIsLoading(false)
     }
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.handle} />
-      <Text style={styles.title}>Add a Place</Text>
-      <Text style={styles.subtitle}>Search for any location to pin on your map</Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.container}>
+        <View style={styles.handle} />
 
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.input}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search for a place..."
-          placeholderTextColor={colors.textTertiary}
-          onSubmitEditing={search}
-          returnKeyType="search"
-          autoFocus
-        />
-        <TouchableOpacity style={styles.searchBtn} onPress={search} disabled={isSearching}>
-          <Text style={styles.searchBtnText}>{isSearching ? '...' : 'Search'}</Text>
+        {/* Icon */}
+        <View style={styles.iconWrap}>
+          <Ionicons name="link" size={28} color={colors.accentGreen} />
+        </View>
+
+        <Text style={styles.title}>Paste a reel link</Text>
+        <Text style={styles.subtitle}>
+          Drop any Instagram reel URL and we'll find the location for you — same as sharing.
+        </Text>
+
+        {/* URL input */}
+        <View style={[styles.inputWrap, error ? styles.inputWrapError : null]}>
+          <Text style={styles.inputPrefix}>🔗</Text>
+          <TextInput
+            style={styles.input}
+            value={url}
+            onChangeText={(t) => { setUrl(t); setError('') }}
+            placeholder="instagram.com/reel/..."
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            returnKeyType="go"
+            onSubmitEditing={handlePin}
+            autoFocus
+          />
+          {url.length > 0 && (
+            <TouchableOpacity onPress={() => { setUrl(''); setError('') }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : null}
+
+        {/* CTA */}
+        <TouchableOpacity
+          style={[styles.pinBtn, (!isValidUrl || isLoading) && styles.pinBtnDisabled]}
+          onPress={handlePin}
+          disabled={!isValidUrl || isLoading}
+          activeOpacity={0.85}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="location" size={18} color="#FFFFFF" style={{ marginRight: spacing[2] }} />
+              <Text style={styles.pinBtnText}>Pin it</Text>
+            </>
+          )}
         </TouchableOpacity>
-      </View>
 
-      {isSearching ? (
-        <ActivityIndicator color={colors.accentGreen} style={{ marginTop: spacing[8] }} />
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.place_id.toString()}
-          renderItem={({ item }) => {
-            const parts = item.display_name.split(', ')
-            const name = parts[0]
-            const subtitle = parts.slice(1, 3).join(', ')
-            return (
-              <TouchableOpacity
-                style={styles.resultRow}
-                onPress={() => handleSelect(item)}
-                disabled={isSaving}
-              >
-                <Text style={styles.resultName} numberOfLines={1}>{name}</Text>
-                <Text style={styles.resultSubtitle} numberOfLines={1}>{subtitle}</Text>
-              </TouchableOpacity>
-            )
-          }}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
-      )}
-    </View>
+        <Text style={styles.hint}>
+          AI extracts the location from the reel automatically — no typing needed.
+        </Text>
+      </View>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary, padding: spacing[5] },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.borderMedium,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: spacing[5],
+  flex: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.bgPrimary,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[8],
   },
+  handle: {
+    width: 40, height: 4, backgroundColor: colors.borderMedium,
+    borderRadius: 2, alignSelf: 'center', marginBottom: spacing[6],
+  },
+
+  iconWrap: {
+    width: 56, height: 56, borderRadius: radius.lg,
+    backgroundColor: colors.bgSecondary,
+    borderWidth: 1, borderColor: colors.borderLight,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing[4],
+    ...shadows.card,
+  },
+
   title: {
     fontSize: fontSizes['2xl'],
     fontFamily: 'PlayfairDisplay-Bold',
     color: colors.textPrimary,
-    marginBottom: spacing[1],
+    marginBottom: spacing[2],
   },
   subtitle: {
     fontSize: fontSizes.sm,
     fontFamily: 'DMSans-Regular',
     color: colors.textSecondary,
-    marginBottom: spacing[5],
+    lineHeight: 20,
+    marginBottom: spacing[6],
   },
-  searchRow: { flexDirection: 'row', gap: spacing[2], marginBottom: spacing[4] },
-  input: {
-    flex: 1,
+
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: fontSizes.base,
-    fontFamily: 'DMSans-Regular',
-    color: colors.textPrimary,
+    borderWidth: 1.5, borderColor: colors.borderLight,
+    paddingHorizontal: spacing[4], paddingVertical: spacing[3],
+    marginBottom: spacing[2],
+    ...shadows.card,
   },
-  searchBtn: {
-    backgroundColor: colors.accentGreen,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing[4],
-    justifyContent: 'center',
-    alignItems: 'center',
+  inputWrapError: {
+    borderColor: colors.accentRed,
   },
-  searchBtnText: {
-    color: '#FFFFFF',
-    fontSize: fontSizes.base,
-    fontFamily: 'DMSans-Medium',
-  },
-  resultRow: {
-    paddingVertical: spacing[4],
-  },
-  resultName: {
-    fontSize: fontSizes.base,
-    fontFamily: 'DMSans-Medium',
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  resultSubtitle: {
+  inputPrefix: { fontSize: 16, marginRight: spacing[2] },
+  input: {
+    flex: 1,
     fontSize: fontSizes.sm,
-    fontFamily: 'DMSans-Regular',
-    color: colors.textSecondary,
+    fontFamily: 'IBMPlexMono-Regular',
+    color: colors.textPrimary,
   },
-  separator: { height: 1, backgroundColor: colors.borderLight },
+
+  errorText: {
+    fontSize: fontSizes.xs,
+    fontFamily: 'DMSans-Regular',
+    color: colors.accentRed,
+    marginBottom: spacing[4],
+    marginLeft: spacing[1],
+  },
+
+  pinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.accentGreen,
+    borderRadius: radius.full,
+    paddingVertical: spacing[4],
+    marginTop: spacing[4],
+    marginBottom: spacing[4],
+    ...shadows.pin,
+  },
+  pinBtnDisabled: { opacity: 0.45 },
+  pinBtnText: {
+    color: '#FFFFFF',
+    fontSize: fontSizes.md,
+    fontFamily: 'DMSans-Medium',
+  },
+
+  hint: {
+    fontSize: fontSizes.xs,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textTertiary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
 })

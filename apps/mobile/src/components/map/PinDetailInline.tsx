@@ -27,10 +27,11 @@ interface Props {
   onClose: () => void
   onPrev: () => void
   onNext: () => void
+  onBeforeDelete: () => void
   insetBottom: number
 }
 
-export default function PinDetailInline({ pin, index, total, onClose, onPrev, onNext, insetBottom }: Props) {
+export default function PinDetailInline({ pin, index, total, onClose, onPrev, onNext, onBeforeDelete, insetBottom }: Props) {
   const { updatePin, deletePin } = usePinsStore()
   const [notes, setNotes] = useState(pin.notes || '')
 
@@ -43,7 +44,11 @@ export default function PinDetailInline({ pin, index, total, onClose, onPrev, on
   const handleDelete = () => {
     Alert.alert('Delete Pin', `Remove "${pin.name}" from your map?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { deletePin(pin.id); onClose() } },
+      { text: 'Delete', style: 'destructive', onPress: () => {
+        onBeforeDelete() // remount map before marker disappears (prevents Fabric nil crash)
+        onClose()
+        deletePin(pin.id)
+      }},
     ])
   }
 

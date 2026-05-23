@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
-import { View, ActivityIndicator } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, ActivityIndicator, Text } from 'react-native'
 import { useRouter } from 'expo-router'
 import { api } from '../src/lib/api'
 import { useAuthStore } from '../src/stores/authStore'
-import { colors } from '../src/constants/theme'
+import { colors, fontSizes, spacing } from '../src/constants/theme'
 
 // expo-share-intent is only available in native builds
 let useShareIntentContext: () => { hasShareIntent: boolean; shareIntent: any; resetShareIntent: () => void }
@@ -13,10 +13,23 @@ try {
   useShareIntentContext = () => ({ hasShareIntent: false, shareIntent: null, resetShareIntent: () => {} })
 }
 
+// Extract URL from any share intent shape expo-share-intent might return
+function extractUrl(shareIntent: any): string {
+  if (!shareIntent) return ''
+  return (
+    shareIntent.webUrl ||
+    shareIntent.url ||
+    shareIntent.text ||
+    shareIntent.data ||
+    ''
+  )
+}
+
 export default function HandleShareScreen() {
   const router = useRouter()
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext()
   const user = useAuthStore((s) => s.user)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!hasShareIntent) {
@@ -30,9 +43,10 @@ export default function HandleShareScreen() {
     }
 
     const handleShare = async () => {
-      const url = shareIntent?.webUrl || shareIntent?.text || ''
+      const url = extractUrl(shareIntent)
+
       if (!url) {
-        router.replace('/(tabs)')
+        setError(`No URL found in share intent.\nIntent: ${JSON.stringify(shareIntent)}`)
         return
       }
 
@@ -44,14 +58,25 @@ export default function HandleShareScreen() {
           pathname: '/(modals)/pin-confirm',
           params: { jobId, url },
         })
-      } catch {
+      } catch (e: any) {
+        const msg = e?.response?.data?.error || e?.message || 'Unknown error'
+        setError(`Failed to queue reel: ${msg}\nURL: ${url}`)
         resetShareIntent()
-        router.replace('/(tabs)')
       }
     }
 
     handleShare()
   }, [hasShareIntent])
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgPrimary, padding: spacing[6] }}>
+        <Text style={{ fontSize: fontSizes.sm, color: colors.accentRed, textAlign: 'center', fontFamily: 'IBMPlexMono-Regular' }}>
+          {error}
+        </Text>
+      </View>
+    )
+  }
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgPrimary }}>

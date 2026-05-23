@@ -7,29 +7,64 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01A170E1FABA9AFAA2C6AB55 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7956CCDBED74353FFEF7E986 /* PrivacyInfo.xcprivacy */; };
+		05E7A68814014A4A924B826A /* MainInterface.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2479A93355984237B7089A9D /* MainInterface.storyboard */; };
+		07C14661A164B21E131602DB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 84D517EC107D4C38B627ED32 /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		1566657BCE8641D89435A06A /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E5E02B9DDD47E39C5EE193 /* ShareViewController.swift */; };
+		362335F27898807D8B49D0DC /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF03CC6D8C0C4648F13B63D8 /* ExpoModulesProvider.swift */; };
+		3C276A19DF33C31D6056CDD4 /* libPods-PinTrip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7EB24A9E28D8F77E2EFEEFAF /* libPods-PinTrip.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		44EE16B75E67783724B38B8D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4F2F5D924B8757E42C868F /* ExpoModulesProvider.swift */; };
+		5298CED50A534CA7965D79FE /* ShareExtension.appex in Copy Files */ = {isa = PBXBuildFile; fileRef = F3BEE3B860A946F6BD99E5A2 /* ShareExtension.appex */; };
+		988FB37747D644F9A57633F2 /* ShareExtensionPreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = D2A25EB42AD743579ED2FA82 /* ShareExtensionPreprocessor.js */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D63DCEE58B15C8C2412E7E61 /* libPods-PinTrip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A33BB6BF8CF2A965F4798399 /* libPods-PinTrip.a */; };
+		D46B87D99B304BB5ABCAB2A1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 84D517EC107D4C38B627ED32 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F3E96ABFBFDD4FAB9DD423B8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D1E9999E53F84856B3A63BBB;
+			remoteInfo = ShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		84C289CB59D6439F9839D40F /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5298CED50A534CA7965D79FE /* ShareExtension.appex in Copy Files */,
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* PinTrip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PinTrip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = PinTrip/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = PinTrip/Info.plist; sourceTree = "<group>"; };
-		53A41976BBBC479F36B5EDF3 /* Pods-PinTrip.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PinTrip.debug.xcconfig"; path = "Target Support Files/Pods-PinTrip/Pods-PinTrip.debug.xcconfig"; sourceTree = "<group>"; };
-		7956CCDBED74353FFEF7E986 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = PinTrip/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		8D4F2F5D924B8757E42C868F /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-PinTrip/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		A33BB6BF8CF2A965F4798399 /* libPods-PinTrip.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PinTrip.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		155E917364F163C834922639 /* Pods-PinTrip.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PinTrip.release.xcconfig"; path = "Target Support Files/Pods-PinTrip/Pods-PinTrip.release.xcconfig"; sourceTree = "<group>"; };
+		2479A93355984237B7089A9D /* MainInterface.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = MainInterface.storyboard; path = MainInterface.storyboard; sourceTree = "<group>"; };
+		2BF5E6598AA756589816A300 /* Pods-PinTrip.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PinTrip.debug.xcconfig"; path = "Target Support Files/Pods-PinTrip/Pods-PinTrip.debug.xcconfig"; sourceTree = "<group>"; };
+		40FCBA495220441FA81631D4 /* ShareExtension.entitlements */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = ShareExtension.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		41E5E02B9DDD47E39C5EE193 /* ShareViewController.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = ShareViewController.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		7EB24A9E28D8F77E2EFEEFAF /* libPods-PinTrip.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PinTrip.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		84D517EC107D4C38B627ED32 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = PrivacyInfo.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9BEF00F7BC4445FF9DC28AE2 /* ShareExtension-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "ShareExtension-Info.plist"; path = "ShareExtension-Info.plist"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = PinTrip/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		CB978FFDF83998689859A804 /* Pods-PinTrip.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PinTrip.release.xcconfig"; path = "Target Support Files/Pods-PinTrip/Pods-PinTrip.release.xcconfig"; sourceTree = "<group>"; };
+		D2A25EB42AD743579ED2FA82 /* ShareExtensionPreprocessor.js */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = ShareExtensionPreprocessor.js; path = ShareExtensionPreprocessor.js; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		EF03CC6D8C0C4648F13B63D8 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-PinTrip/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = PinTrip/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* PinTrip-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "PinTrip-Bridging-Header.h"; path = "PinTrip/PinTrip-Bridging-Header.h"; sourceTree = "<group>"; };
+		F3BEE3B860A946F6BD99E5A2 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = undefined; name = ShareExtension.appex; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,13 +72,28 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D63DCEE58B15C8C2412E7E61 /* libPods-PinTrip.a in Frameworks */,
+				3C276A19DF33C31D6056CDD4 /* libPods-PinTrip.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		341C9A6917E6445E93CCFDC4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1247CADAE878591D3E7546A9 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				153A3FE9ED60FAA6FC94D807 /* PinTrip */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* PinTrip */ = {
 			isa = PBXGroup;
 			children = (
@@ -53,36 +103,35 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				7956CCDBED74353FFEF7E986 /* PrivacyInfo.xcprivacy */,
 			);
 			name = PinTrip;
 			sourceTree = "<group>";
 		};
-		20C7708A77159027C8D2F7C2 /* Pods */ = {
+		153A3FE9ED60FAA6FC94D807 /* PinTrip */ = {
 			isa = PBXGroup;
 			children = (
-				53A41976BBBC479F36B5EDF3 /* Pods-PinTrip.debug.xcconfig */,
-				CB978FFDF83998689859A804 /* Pods-PinTrip.release.xcconfig */,
+				EF03CC6D8C0C4648F13B63D8 /* ExpoModulesProvider.swift */,
 			);
-			name = Pods;
-			path = Pods;
+			name = PinTrip;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				A33BB6BF8CF2A965F4798399 /* libPods-PinTrip.a */,
+				7EB24A9E28D8F77E2EFEEFAF /* libPods-PinTrip.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		7E302A29BBBE576C258277B5 /* PinTrip */ = {
+		596DBFF8A98BFD9EF57BF809 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				8D4F2F5D924B8757E42C868F /* ExpoModulesProvider.swift */,
+				2BF5E6598AA756589816A300 /* Pods-PinTrip.debug.xcconfig */,
+				155E917364F163C834922639 /* Pods-PinTrip.release.xcconfig */,
 			);
-			name = PinTrip;
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -99,8 +148,9 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				20C7708A77159027C8D2F7C2 /* Pods */,
-				A6EAFF6DE5B9BC03535EB63C /* ExpoModulesProviders */,
+				CA2B3C9160E8408EBFFFED39 /* ShareExtension */,
+				596DBFF8A98BFD9EF57BF809 /* Pods */,
+				1247CADAE878591D3E7546A9 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -111,16 +161,9 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* PinTrip.app */,
+				F3BEE3B860A946F6BD99E5A2 /* ShareExtension.appex */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		A6EAFF6DE5B9BC03535EB63C /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				7E302A29BBBE576C258277B5 /* PinTrip */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -132,6 +175,20 @@
 			path = PinTrip/Supporting;
 			sourceTree = "<group>";
 		};
+		CA2B3C9160E8408EBFFFED39 /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				41E5E02B9DDD47E39C5EE193 /* ShareViewController.swift */,
+				2479A93355984237B7089A9D /* MainInterface.storyboard */,
+				D2A25EB42AD743579ED2FA82 /* ShareExtensionPreprocessor.js */,
+				84D517EC107D4C38B627ED32 /* PrivacyInfo.xcprivacy */,
+				9BEF00F7BC4445FF9DC28AE2 /* ShareExtension-Info.plist */,
+				40FCBA495220441FA81631D4 /* ShareExtension.entitlements */,
+			);
+			name = ShareExtension;
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -140,22 +197,41 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "PinTrip" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				4CB7401D1AC26B1E18523F6F /* [Expo] Configure project */,
+				00D1518930735DDA400A960A /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				1CE1C7ECE48733448F40667F /* [CP] Embed Pods Frameworks */,
+				84C289CB59D6439F9839D40F /* Copy Files */,
+				3E0DC4D31DB86BC2A3C77B6F /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				38D293C924DF4CB8B5C890BB /* PBXTargetDependency */,
 			);
 			name = PinTrip;
 			productName = PinTrip;
 			productReference = 13B07F961A680F5B00A75B9A /* PinTrip.app */;
 			productType = "com.apple.product-type.application";
+		};
+		D1E9999E53F84856B3A63BBB /* ShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F8212038EA6847B298A7FBE3 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
+			buildPhases = (
+				E4FB47C0CC75452B81889659 /* Sources */,
+				9725A7D74D0347808C9B3256 /* Resources */,
+				341C9A6917E6445E93CCFDC4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShareExtension;
+			productName = ShareExtension;
+			productReference = F3BEE3B860A946F6BD99E5A2 /* ShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -184,6 +260,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* PinTrip */,
+				D1E9999E53F84856B3A63BBB /* ShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -196,13 +273,47 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				01A170E1FABA9AFAA2C6AB55 /* PrivacyInfo.xcprivacy in Resources */,
+				07C14661A164B21E131602DB /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9725A7D74D0347808C9B3256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05E7A68814014A4A924B826A /* MainInterface.storyboard in Resources */,
+				988FB37747D644F9A57633F2 /* ShareExtensionPreprocessor.js in Resources */,
+				D46B87D99B304BB5ABCAB2A1 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		00D1518930735DDA400A960A /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/PinTrip/PinTrip.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-PinTrip/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-PinTrip/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-PinTrip/expo-configure-project.sh\"\n";
+		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -242,7 +353,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		1CE1C7ECE48733448F40667F /* [CP] Embed Pods Frameworks */ = {
+		3E0DC4D31DB86BC2A3C77B6F /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -263,30 +374,6 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PinTrip/Pods-PinTrip-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
-		};
-		4CB7401D1AC26B1E18523F6F /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/PinTrip/PinTrip.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-PinTrip/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-PinTrip/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-PinTrip/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -334,16 +421,32 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				44EE16B75E67783724B38B8D /* ExpoModulesProvider.swift in Sources */,
+				362335F27898807D8B49D0DC /* ExpoModulesProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E4FB47C0CC75452B81889659 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1566657BCE8641D89435A06A /* ShareViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		38D293C924DF4CB8B5C890BB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D1E9999E53F84856B3A63BBB /* ShareExtension */;
+			targetProxy = F3E96ABFBFDD4FAB9DD423B8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 53A41976BBBC479F36B5EDF3 /* Pods-PinTrip.debug.xcconfig */;
+			baseConfigurationReference = 2BF5E6598AA756589816A300 /* Pods-PinTrip.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -379,7 +482,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CB978FFDF83998689859A804 /* Pods-PinTrip.release.xcconfig */;
+			baseConfigurationReference = 155E917364F163C834922639 /* Pods-PinTrip.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -406,6 +509,35 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
+		};
+		56F1EC73227B4B85A811D6BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ShareExtension/ShareExtension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = "app.pintrip.mobile.share-extension";
+				PRODUCT_NAME = ShareExtension;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
 		};
 		83CBBA201A601CBA00E9B192 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -525,6 +657,31 @@
 			};
 			name = Release;
 		};
+		AE7F0135E23645EC9CD952F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ShareExtension/ShareExtension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = "app.pintrip.mobile.share-extension";
+				PRODUCT_NAME = ShareExtension;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -542,6 +699,15 @@
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F8212038EA6847B298A7FBE3 /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				56F1EC73227B4B85A811D6BF /* Debug */,
+				AE7F0135E23645EC9CD952F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -42,12 +42,11 @@ parsePinRouter.get('/:jobId', async (req: AuthRequest, res: Response) => {
     delayed: 'queued',
   }
 
-  res.json({
-    success: true,
-    data: {
-      jobId: job.id,
-      status: stateMap[state] || 'queued',
-      ...(state === 'failed' ? { error: job.failedReason } : {}),
-    },
-  })
+  const status = stateMap[state] || 'queued'
+  const extra =
+    state === 'failed' ? { error: job.failedReason } :
+    state === 'completed' ? { placeData: (job.returnvalue as any)?.placeData ?? null } :
+    {}
+
+  res.json({ success: true, data: { jobId: job.id, status, ...extra } })
 })

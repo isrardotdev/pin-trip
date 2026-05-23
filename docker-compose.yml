@@ -21,6 +21,32 @@ services:
     volumes:
       - pintrip-redis-data:/data
 
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: pintrip-backend
+    restart: unless-stopped
+    # Override DB/Redis URLs to use Docker service names (not localhost)
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/pintrip_dev
+      - REDIS_URL=redis://redis:6379
+      - YTDLP_PATH=/usr/bin/yt-dlp
+    env_file:
+      - ./apps/backend/.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      # Hot-reload source without rebuilding image
+      - ./apps/backend/src:/app/apps/backend/src
+      - ./apps/backend/prisma:/app/apps/backend/prisma
+      - ./packages/shared/src:/app/packages/shared/src
+      # Temp dir for audio files
+      - /tmp/pintrip:/tmp/pintrip
+
 volumes:
   pintrip-postgres-data:
   pintrip-redis-data:

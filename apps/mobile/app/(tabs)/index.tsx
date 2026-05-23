@@ -1,9 +1,13 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Image, Dimensions, ScrollView, Animated,
+  Image, Dimensions, ScrollView,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import Animated, {
+  useSharedValue, useAnimatedScrollHandler,
+  useAnimatedStyle, interpolate, Extrapolation,
+} from 'react-native-reanimated'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -16,7 +20,7 @@ import PinDetailInline from '../../src/components/map/PinDetailInline'
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const MAP_HEIGHT_FULL = SCREEN_HEIGHT * 0.52
 const MAP_HEIGHT_COLLAPSED = 120
-const COLLAPSE_SCROLL_DISTANCE = 80
+const COLLAPSE_SCROLL_DISTANCE = 140
 const FLY_TO_DEBOUNCE_MS = 350
 
 const STATUS_FILTERS: { label: string; value: PinStatus | 'ALL' }[] = [
@@ -58,10 +62,10 @@ function FilterChip({ label, active, onPress }: { label: string; active: boolean
 
 // ─── Pin card ─────────────────────────────────────────────────────────────────
 
-function PinCard({ pin, onPress, selected }: { pin: Pin; onPress: () => void; selected: boolean }) {
+function PinCard({ pin, onPress, selected, isNew }: { pin: Pin; onPress: () => void; selected: boolean; isNew?: boolean }) {
   return (
     <TouchableOpacity
-      style={[styles.pinCard, selected && styles.pinCardSelected]}
+      style={[styles.pinCard, selected && styles.pinCardSelected, isNew && styles.pinCardNew]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -95,28 +99,41 @@ export default function HomeScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { pins, fetchPins } = usePinsStore()
+  const { newPinId } = useLocalSearchParams<{ newPinId?: string }>()
 
   const [statusFilter, setStatusFilter] = useState<PinStatus | 'ALL'>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<Category | 'ALL'>('ALL')
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null)
+  const [newlyAddedPinId, setNewlyAddedPinId] = useState<string | null>(null)
 
   const mapRef = useRef<MapNativeRef>(null)
   const flyToTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scrollY = useRef(new Animated.Value(0)).current
+  const scrollY = useSharedValue(0)
+  const [mapKey, setMapKey] = useState(0)
 
-  const mapHeight = scrollY.interpolate({
-    inputRange: [0, COLLAPSE_SCROLL_DISTANCE],
-    outputRange: [MAP_HEIGHT_FULL, MAP_HEIGHT_COLLAPSED],
-    extrapolate: 'clamp',
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => { scrollY.value = e.contentOffset.y },
   })
 
-  const fabTop = scrollY.interpolate({
-    inputRange: [0, COLLAPSE_SCROLL_DISTANCE],
-    outputRange: [MAP_HEIGHT_FULL - 68, MAP_HEIGHT_COLLAPSED - 68],
-    extrapolate: 'clamp',
-  })
+  const mapAnimStyle = useAnimatedStyle(() => ({
+    height: interpolate(scrollY.value, [0, COLLAPSE_SCROLL_DISTANCE], [MAP_HEIGHT_FULL, MAP_HEIGHT_COLLAPSED], Extrapolation.CLAMP),
+  }))
+
+  const fabAnimStyle = useAnimatedStyle(() => ({
+    top: interpolate(scrollY.value, [0, COLLAPSE_SCROLL_DISTANCE], [MAP_HEIGHT_FULL - 68, MAP_HEIGHT_COLLAPSED - 68], Extrapolation.CLAMP),
+  }))
 
   useEffect(() => { fetchPins() }, [])
+
+  // Auto-select newly added pin from share flow and clear highlight after 4s
+  useEffect(() => {
+    if (newPinId) {
+      setNewlyAddedPinId(newPinId)
+      selectPin(newPinId)
+      const t = setTimeout(() => setNewlyAddedPinId(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [newPinId])
 
   const filteredPins = pins.filter((p) => {
     if (statusFilter !== 'ALL' && p.status !== statusFilter) return false
@@ -155,8 +172,9 @@ export default function HomeScreen() {
     <View style={styles.container}>
 
       {/* ── Map ─────────────────────────────────────────────── */}
-      <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
+      <Animated.View style={[styles.mapContainer, mapAnimStyle]}>
         <MapNative
+          key={mapKey}
           ref={mapRef}
           pins={filteredPins}
           selectedPinId={selectedPinId}
@@ -165,7 +183,7 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* ── FAB ─────────────────────────────────────────────── */}
-      <Animated.View style={[styles.fabContainer, { top: fabTop }]}>
+      <Animated.View style={[styles.fabContainer, fabAnimStyle]}>
         <TouchableOpacity
           style={styles.fab}
           onPress={() => router.push('/(modals)/manual-add')}
@@ -184,17 +202,16 @@ export default function HomeScreen() {
           onClose={clearSelection}
           onPrev={goToPrev}
           onNext={goToNext}
+          onBeforeDelete={() => setMapKey(k => k + 1)}
           insetBottom={insets.bottom}
         />
       ) : (
         <Animated.ScrollView
           style={styles.listSection}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
+          decelerationRate={0.92}
           contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         >
           <View style={styles.listHeader}>
@@ -246,6 +263,7 @@ export default function HomeScreen() {
                 key={pin.id}
                 pin={pin}
                 selected={pin.id === selectedPinId}
+                isNew={pin.id === newlyAddedPinId}
                 onPress={() => selectPin(pin.id)}
               />
             ))
@@ -298,6 +316,10 @@ const styles = StyleSheet.create({
   },
   pinCardSelected: {
     borderWidth: 1.5, borderColor: colors.accentGreen,
+  },
+  pinCardNew: {
+    borderWidth: 1.5, borderColor: colors.accentGreen,
+    backgroundColor: '#F0FAF5',
   },
   thumbnail: { width: 48, height: 48, borderRadius: radius.sm, marginRight: spacing[3] },
   thumbnailPlaceholder: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.bgSecondary, alignItems: 'center', justifyContent: 'center', marginRight: spacing[3] },

@@ -13,7 +13,7 @@ import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const MAP_HEIGHT_FULL = SCREEN_HEIGHT * 0.42
 const MAP_HEIGHT_COLLAPSED = 120
-const COLLAPSE_SCROLL_DISTANCE = 80
+const COLLAPSE_SCROLL_DISTANCE = 140
 const FLY_DEBOUNCE_MS = 300
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -190,6 +190,7 @@ export default function DiscoverScreen() {
           contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: 100 + insets.bottom }}
           ItemSeparatorComponent={() => <View style={{ height: spacing[4] }} />}
           onScrollToIndexFailed={() => {}}
+          decelerationRate={0.92}
         />
       )}
     </View>

@@ -2,9 +2,24 @@ export type PinStatus = 'WISHLIST' | 'PLANNING' | 'VISITED'
 export type Category = 'NATURE' | 'FOOD' | 'ADVENTURE' | 'CULTURE' | 'STAY' | 'OFFBEAT'
 export type SourceType = 'INSTAGRAM' | 'YOUTUBE' | 'MANUAL' | 'DISCOVER'
 
+export interface Place {
+  id: string
+  name: string
+  city?: string
+  state?: string
+  country: string
+  lat: number
+  lng: number
+  thumbnailUrl?: string
+  aiConfidence?: number
+  category: Category
+  createdAt: string
+}
+
 export interface Pin {
   id: string
   userId: string
+  placeId?: string
   name: string
   city?: string
   state?: string

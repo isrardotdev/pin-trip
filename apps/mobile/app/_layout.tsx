@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Stack } from 'expo-router'
+import { Stack, useRouter, useSegments } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import * as SplashScreen from 'expo-splash-screen'
 import { useAuthStore } from '../src/stores/authStore'
@@ -20,12 +20,32 @@ import {
 
 // expo-share-intent requires a native build — not available in Expo Go
 let ShareIntentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>
+let useShareIntentContext: () => { hasShareIntent: boolean } = () => ({ hasShareIntent: false })
 try {
   const mod = require('expo-share-intent')
-  if (mod?.ShareIntentProvider) {
-    ShareIntentProvider = mod.ShareIntentProvider
-  }
+  if (mod?.ShareIntentProvider) ShareIntentProvider = mod.ShareIntentProvider
+  if (mod?.useShareIntentContext) useShareIntentContext = mod.useShareIntentContext
 } catch {}
+
+// Redirects to handle-share whenever the share extension opens the app.
+// Waits for login if the user isn't authenticated yet — after login the effect
+// re-fires (user dep changed) and resumes the share flow automatically.
+// Guards against re-firing if already in the share flow (prevents double modal).
+function ShareIntentHandler() {
+  const { hasShareIntent } = useShareIntentContext()
+  const router = useRouter()
+  const segments = useSegments()
+  const user = useAuthStore((s) => s.user)
+
+  useEffect(() => {
+    if (!hasShareIntent) return
+    if (!user) return // wait — will re-fire once user logs in
+    const path = segments.join('/')
+    if (path.includes('handle-share') || path.includes('pin-confirm')) return
+    router.replace('/handle-share')
+  }, [hasShareIntent, user])
+  return null
+}
 
 SplashScreen.preventAutoHideAsync()
 
@@ -58,6 +78,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ShareIntentProvider>
+        <ShareIntentHandler />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />

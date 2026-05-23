@@ -20,10 +20,40 @@ model User {
   conversations Conversation[]
 }
 
+model Place {
+  id           String        @id @default(cuid())
+  name         String
+  city         String?
+  state        String?
+  country      String        @default("India")
+  lat          Float
+  lng          Float
+  thumbnailUrl String?
+  aiConfidence Float?
+  category     Category
+  createdAt    DateTime      @default(now())
+  pins         Pin[]
+  sources      PlaceSource[]
+
+  @@index([name, city, state])
+}
+
+// Maps a reel URL to a canonical Place (level-1 dedup key)
+model PlaceSource {
+  id      String @id @default(cuid())
+  url     String @unique
+  placeId String
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+}
+
 model Pin {
   id                 String     @id @default(cuid())
   userId             String
   user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional link to canonical Place
+  placeId            String?
+  place              Place?     @relation(fields: [placeId], references: [id])
 
   name               String
   city               String?
