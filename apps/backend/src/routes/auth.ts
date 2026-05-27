@@ -37,7 +37,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   const passwordHash = await bcrypt.hash(password, 12)
   const user = await prisma.user.create({
     data: { email, passwordHash, name },
-    select: { id: true, email: true, name: true, avatarUrl: true, createdAt: true },
+    select: { id: true, email: true, name: true, avatarUrl: true, plan: true, aiMessagesUsed: true, createdAt: true },
   })
 
   const token = jwt.sign({ userId: user.id }, config.jwt.secret, {
@@ -72,14 +72,14 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'],
   })
 
-  const { passwordHash: _, ...safeUser } = user
+  const { passwordHash: _, updatedAt: __, ...safeUser } = user
   res.json({ success: true, data: { user: safeUser, token } })
 })
 
 authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, name: true, avatarUrl: true, createdAt: true },
+    select: { id: true, email: true, name: true, avatarUrl: true, plan: true, aiMessagesUsed: true, createdAt: true },
   })
 
   if (!user) {

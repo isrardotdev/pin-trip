@@ -84,7 +84,7 @@ Use **pnpm workspaces**. All three apps live under `apps/`. Shared TypeScript ty
 | Media download | yt-dlp (CLI, spawned as child_process) | Extract audio from reel URLs |
 | Transcription | Groq SDK (Whisper large-v3-turbo) | Free tier: 2k req/day, 9x cheaper than OpenAI |
 | LLM (extraction) | Groq SDK (llama-3.3-70b-versatile) | Free tier, great for structured extraction |
-| LLM (planner) | Google Generative AI SDK (gemini-1.5-flash) | Free tier: 15 RPM, 1M tokens/day |
+| LLM (planner) | Google Generative AI SDK (gemini-2.0-flash) | Free tier: 15 RPM, 1M tokens/day |
 | Geocoding | Nominatim (OSM) via HTTP | Completely free, no API key |
 | File storage | Local disk during dev, Cloudflare R2 in prod | |
 
@@ -944,17 +944,51 @@ Build **strictly** in this sequence. Do not skip ahead.
 - [ ] Mobile: Pin confirm modal (processing → success → fallback states)
 - [ ] Mobile: Push notification when pin is ready
 
-**Phase 4 — Discover + Plan**
+**Phase 4 — Subscription Foundation (before building Plan UI)**
+- [ ] Backend: Add `plan: UserPlan @default(FREE)` + `planExpiresAt` + `aiMessagesUsed` to User model + migrate
+- [ ] Backend: `requirePro` middleware (binary gate — built but not applied to any route yet)
+- [ ] Backend: `requirePlannerAccess` middleware (metered gate — 5 free messages, then blocks with `PLANNER_LIMIT_REACHED`)
+- [ ] Backend: Increment `aiMessagesUsed` on each `/plan` call for FREE users
+- [ ] Mobile: `useEntitlements` hook (`isPro`, `canSendPlannerMessage`, `plannerMessagesRemaining`)
+- [ ] Mobile: Stub `PaywallScreen` component (shown when limit hit — upgrade CTA does nothing yet)
+- [ ] Mobile: Stub `UpgradeModal` component for future RevenueCat purchase sheet
+
+**Phase 5 — Discover + Plan**
 - [ ] Backend: Discover endpoints + seed data (30 Indian places)
 - [ ] Mobile: Discover screen
-- [ ] Backend: `/plan` endpoint with Gemini integration
+- [ ] Backend: `/plan` endpoint with Gemini integration + `requirePlannerAccess` middleware applied
 - [ ] Mobile: Plan (chat) screen with itinerary card rendering
+- [ ] Mobile: Show "X free messages remaining" badge in chat header for free users
+- [ ] Mobile: Show `PaywallScreen` when `canSendPlannerMessage` is false
 
-**Phase 5 — Polish**
-- [ ] Mobile: Profile screen
+**Phase 6 — Polish + App Store Submission**
+- [ ] Mobile: Profile screen (show plan status — Free / Pro)
 - [ ] Mobile: All animations (spring physics, staggered lists, pin drop Lottie)
 - [ ] Mobile: Onboarding flow (3 screens showing the value prop)
 - [ ] Web: Landing page
+
+**Phase 7 — Monetisation (RevenueCat)**
+- [ ] RevenueCat account + products configured in App Store Connect + Google Play Console
+- [ ] Pricing: ₹199/mo or ₹999/yr (India), $2.99/mo or $14.99/yr (international)
+- [ ] Install `react-native-purchases` (RevenueCat SDK) in mobile
+- [ ] `UpgradeModal` wired to RevenueCat purchase sheet
+- [ ] Backend: `POST /webhooks/revenuecat` — update `User.plan` on subscription events
+- [ ] Backend: Apply `requirePro` to any additional Pro-only routes
+- [ ] Mobile: `useEntitlements` updated to also check RevenueCat local entitlement cache
+- [ ] Profile screen: subscription status + "Manage subscription" button
+
+**Phase 8 — Shared Trips (Post-Launch, Pro Feature)**
+- [ ] DB: `Trip` model (name, ownerId, coverPhoto), `TripMember` join table (tripId, userId, role: OWNER|MEMBER)
+- [ ] DB: Pins optionally belong to a Trip (`tripId` on Pin model)
+- [ ] Backend: Trip CRUD + invite system (invite link + username lookup)
+- [ ] Backend: Push notification fan-out to all trip members when a pin is added
+- [ ] Mobile: "New shared trip" flow — name it, invite by link or username
+- [ ] Mobile: Trip selector in pin-confirm ("Add to: My Map / Goa 2026 with Rahul / ...")
+- [ ] Mobile: Shared trip map view — separate tab per trip, shows all members' pins
+- [ ] Mobile: Member list UI — who's in the trip, their contribution count
+- [ ] Mobile: Pin comments — collaborators can comment on any pin in a shared trip
+- [ ] Mobile: Notification: "Rahul pinned Café Chocolatti to Goa 2026 👀"
+- [ ] Viral loop: invitee must download PinTrip to join a trip
 
 ---
 
@@ -986,13 +1020,49 @@ Do not build any of these for the MVP:
 - YouTube / TikTok support (Instagram only for now)
 - 3D globe view
 - Offline maps
-- Trip collaboration
-- Monetization / premium tier
+- Trip collaboration (Phase 8)
+- RevenueCat / actual payment processing (Phase 7)
 - Hindi / regional language UI
 - Frame-by-frame video analysis (GPT-4o Vision) — caption + audio only
 - In-app browser for viewing reels
 - Custom onboarding illustrations (use text placeholders)
+- Map drawing / annotation (see Section 15)
 
 ---
 
-*End of CLAUDE.md — Begin building Phase 1.*
+## 15. Post-Launch Feature Ideas (Not Scheduled Yet)
+
+These are well-thought-out ideas that should be built after the app is live and validated. Do not build these during MVP phases.
+
+### Map Drawing / Annotation (Crazy Good Idea)
+
+Inspired by physical paper maps where travelers mark routes and notes by hand. When zoomed in to city/neighbourhood level on a shared trip map, a pen tool appears. Users can draw freehand strokes directly on the map.
+
+**How it works technically:**
+- Overlay a transparent drawing surface using `react-native-skia` (GPU-accelerated canvas, same library Shopify uses — works on top of MapLibre)
+- Each stroke is recorded as an array of `{ lat, lng }` points (not screen pixels) — so drawings scale and pan correctly with the map
+- Drawings are saved as geo-anchored SVG paths in the DB, associated with a Trip
+- Only shown when zoom level is above a threshold (can see street/restaurant detail) — not when zoomed out to country level
+- All trip members see each other's drawings in real time (or near-real-time)
+- Works like the Instagram DM canvas but on a real map with geographic context
+
+**Why it's differentiated:** No travel app does this. The "annotate a physical map" metaphor is deeply familiar and emotional for travelers.
+
+**Tech dependencies when building:**
+- `react-native-skia` for the drawing canvas overlay
+- MapLibre zoom level events to show/hide the pen tool
+- DB: `TripAnnotation` model (tripId, authorId, svgPath, boundingBoxLat/lng, createdAt)
+- Requires Shared Trips (Phase 8) to be built first — annotations belong to a Trip
+
+### Premium Tier (Phase 9)
+When there are enough Pro features to justify a third tier. Likely candidates:
+- Trip collaboration (if moved to Premium instead of Pro)
+- Map drawing / annotation
+- Offline maps
+- Export itinerary as PDF / shareable image
+- Priority AI processing (skip the queue)
+- Pricing: ₹499/mo or ₹2499/yr
+
+---
+
+*End of CLAUDE.md*

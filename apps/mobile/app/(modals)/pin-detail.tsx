@@ -137,11 +137,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   thumbnail: {
-    width: '100%',
     height: 200,
     borderRadius: radius.md,
-    marginHorizontal: spacing[4],
-    width: undefined,
     marginLeft: spacing[4],
     marginRight: spacing[4],
   },

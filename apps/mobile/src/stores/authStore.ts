@@ -13,6 +13,7 @@ interface AuthState {
   register: (email: string, password: string, name?: string) => Promise<void>
   logout: () => Promise<void>
   hydrate: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -65,5 +66,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await SecureStore.deleteItemAsync('auth_token')
     set({ user: null, token: null })
+  },
+
+  // Call after any action that changes plan or aiMessagesUsed on the server
+  refreshUser: async () => {
+    try {
+      const res = await api.get('/auth/me')
+      set({ user: res.data.data })
+    } catch {}
   },
 }))

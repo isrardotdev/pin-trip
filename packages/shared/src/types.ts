@@ -1,6 +1,6 @@
 export type PinStatus = 'WISHLIST' | 'PLANNING' | 'VISITED'
 export type Category = 'NATURE' | 'FOOD' | 'ADVENTURE' | 'CULTURE' | 'STAY' | 'OFFBEAT'
-export type SourceType = 'INSTAGRAM' | 'YOUTUBE' | 'MANUAL' | 'DISCOVER'
+export type SourceType = 'INSTAGRAM' | 'YOUTUBE' | 'MANUAL' | 'DISCOVER' | 'PLANNER'
 
 export interface Place {
   id: string
@@ -37,26 +37,63 @@ export interface Pin {
   updatedAt: string
 }
 
-export interface ItineraryDay {
-  day: number
-  title: string
-  pinIds: string[]
-  description: string
-  travelNote?: string
-}
-
-export interface Itinerary {
-  type: 'itinerary'
-  summary: string
-  days: ItineraryDay[]
-}
-
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
-  itinerary?: Itinerary
+  questionOptions?: string[]   // present on question-type AI messages
+  readyToPlan?: boolean        // when true, show "Plan now" button
 }
+
+export interface DayItem {
+  type: 'pin' | 'suggestion'
+  pinId?: string
+  name: string
+  category: Category
+  description: string
+  lat?: number
+  lng?: number
+  isAddable?: boolean
+}
+
+export interface ItineraryDay {
+  day: number
+  title: string
+  description: string
+  travelNote?: string
+  items: DayItem[]
+}
+
+export interface TripDocument {
+  type: 'itinerary'
+  summary: string
+  destination: string
+  days: ItineraryDay[]
+}
+
+export interface SavedItinerary {
+  id: string
+  userId: string
+  title: string
+  destination: string
+  document: TripDocument
+  messages: ChatMessage[]
+  createdAt: string
+}
+
+export interface Conversation {
+  tripDocument: TripDocument | null
+  destination: string | null
+  messages: ChatMessage[]
+}
+
+// Planner API response types
+export type PlannerResponse =
+  | { type: 'itinerary_new'; document: TripDocument; title: string; destination: string }
+  | { type: 'itinerary_update'; document: TripDocument }
+  | { type: 'message'; content: string }
+  | { type: 'question'; content: string; options: string[]; readyToPlan: boolean }
+  | { type: 'conflict'; currentDestination: string; newDestination: string }
 
 export interface ApiSuccess<T> {
   success: true
@@ -71,11 +108,17 @@ export interface ApiError {
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError
 
+export type UserPlan = 'FREE' | 'PRO'
+
+export const PLANNER_FREE_LIMIT = 5
+
 export interface User {
   id: string
   email: string
   name?: string
   avatarUrl?: string
+  plan: UserPlan
+  aiMessagesUsed: number
   createdAt: string
 }
 

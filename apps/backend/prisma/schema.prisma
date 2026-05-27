@@ -8,16 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  passwordHash  String
-  name          String?
-  avatarUrl     String?
-  pushToken     String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  pins          Pin[]
-  conversations Conversation[]
+  id               String           @id @default(cuid())
+  email            String           @unique
+  passwordHash     String
+  name             String?
+  avatarUrl        String?
+  pushToken        String?
+  plan             UserPlan         @default(FREE)
+  planExpiresAt    DateTime?
+  aiMessagesUsed   Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  pins             Pin[]
+  conversations    Conversation[]
+  savedItineraries SavedItinerary[]
 }
 
 model Place {
@@ -112,12 +116,32 @@ model DiscoverPlace {
 }
 
 model Conversation {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  Json[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripDocument Json?
+  destination  String?
+  messages     Json[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SavedItinerary {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  destination String
+  document    Json
+  messages    Json[]
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum UserPlan {
+  FREE
+  PRO
 }
 
 enum SourceType {
@@ -125,6 +149,7 @@ enum SourceType {
   YOUTUBE
   MANUAL
   DISCOVER
+  PLANNER
 }
 
 enum PinStatus {
