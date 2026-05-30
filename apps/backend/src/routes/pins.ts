@@ -2,6 +2,7 @@ import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../db'
 import { authenticate, AuthRequest } from '../middleware/auth'
+import { logger } from '../logger'
 import { PinStatus, Category } from '@prisma/client'
 
 export const pinsRouter = Router()
@@ -15,7 +16,7 @@ const createPinSchema = z.object({
   country: z.string().default('India'),
   lat: z.number(),
   lng: z.number(),
-  source: z.enum(['INSTAGRAM', 'YOUTUBE', 'MANUAL', 'DISCOVER']).default('MANUAL'),
+  source: z.enum(['INSTAGRAM', 'YOUTUBE', 'MANUAL', 'DISCOVER', 'PLANNER']).default('MANUAL'),
   sourceUrl: z.string().url().optional(),
   sourceThumbnailUrl: z.string().url().optional(),
   status: z.enum(['WISHLIST', 'PLANNING', 'VISITED']).default('WISHLIST'),
@@ -36,84 +37,122 @@ const updatePinSchema = z.object({
 
 pinsRouter.get('/', async (req: AuthRequest, res: Response) => {
   const { status, category } = req.query
+  logger.debug({ userId: req.userId, status, category }, 'GET /pins')
 
-  const pins = await prisma.pin.findMany({
-    where: {
-      userId: req.userId,
-      ...(status ? { status: status as PinStatus } : {}),
-      ...(category ? { category: category as Category } : {}),
-    },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  res.json({ success: true, data: pins })
+  try {
+    const pins = await prisma.pin.findMany({
+      where: {
+        userId: req.userId,
+        ...(status ? { status: status as PinStatus } : {}),
+        ...(category ? { category: category as Category } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    logger.info({ userId: req.userId, count: pins.length }, 'Fetched pins')
+    res.json({ success: true, data: pins })
+  } catch (err) {
+    logger.error({ err, userId: req.userId }, 'Failed to fetch pins')
+    res.status(500).json({ success: false, error: 'Failed to fetch pins' })
+  }
 })
 
 pinsRouter.post('/', async (req: AuthRequest, res: Response) => {
+  logger.debug({ userId: req.userId, body: req.body }, 'POST /pins')
   const parsed = createPinSchema.safeParse(req.body)
   if (!parsed.success) {
+    logger.warn({ userId: req.userId, errors: parsed.error.errors }, 'Pin creation validation failed')
     res.status(400).json({ success: false, error: 'Invalid request body', code: 'VALIDATION_ERROR' })
     return
   }
 
-  const pin = await prisma.pin.create({
-    data: { ...parsed.data, userId: req.userId! },
-  })
-
-  res.status(201).json({ success: true, data: pin })
+  try {
+    const pin = await prisma.pin.create({
+      data: { ...parsed.data, userId: req.userId! },
+    })
+    logger.info({ userId: req.userId, pinId: pin.id, name: pin.name, source: pin.source }, 'Pin created')
+    res.status(201).json({ success: true, data: pin })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, data: parsed.data }, 'Failed to create pin')
+    res.status(500).json({ success: false, error: 'Failed to create pin' })
+  }
 })
 
 pinsRouter.get('/:id', async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id)
-  const pin = await prisma.pin.findFirst({
-    where: { id, userId: req.userId },
-  })
+  logger.debug({ userId: req.userId, pinId: id }, 'GET /pins/:id')
 
-  if (!pin) {
-    res.status(404).json({ success: false, error: 'Pin not found' })
-    return
+  try {
+    const pin = await prisma.pin.findFirst({
+      where: { id, userId: req.userId },
+    })
+
+    if (!pin) {
+      logger.warn({ userId: req.userId, pinId: id }, 'Pin not found')
+      res.status(404).json({ success: false, error: 'Pin not found' })
+      return
+    }
+
+    res.json({ success: true, data: pin })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, pinId: id }, 'Failed to fetch pin')
+    res.status(500).json({ success: false, error: 'Failed to fetch pin' })
   }
-
-  res.json({ success: true, data: pin })
 })
 
 pinsRouter.patch('/:id', async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id)
+  logger.debug({ userId: req.userId, pinId: id, body: req.body }, 'PATCH /pins/:id')
   const parsed = updatePinSchema.safeParse(req.body)
   if (!parsed.success) {
+    logger.warn({ userId: req.userId, pinId: id, errors: parsed.error.errors }, 'Pin update validation failed')
     res.status(400).json({ success: false, error: 'Invalid request body', code: 'VALIDATION_ERROR' })
     return
   }
 
-  const existing = await prisma.pin.findFirst({
-    where: { id, userId: req.userId },
-  })
-  if (!existing) {
-    res.status(404).json({ success: false, error: 'Pin not found' })
-    return
+  try {
+    const existing = await prisma.pin.findFirst({
+      where: { id, userId: req.userId },
+    })
+    if (!existing) {
+      logger.warn({ userId: req.userId, pinId: id }, 'Pin not found for update')
+      res.status(404).json({ success: false, error: 'Pin not found' })
+      return
+    }
+
+    const pin = await prisma.pin.update({
+      where: { id },
+      data: {
+        ...parsed.data,
+        ...(parsed.data.visitedAt ? { visitedAt: new Date(parsed.data.visitedAt) } : {}),
+      },
+    })
+    logger.info({ userId: req.userId, pinId: id, changes: parsed.data }, 'Pin updated')
+    res.json({ success: true, data: pin })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, pinId: id }, 'Failed to update pin')
+    res.status(500).json({ success: false, error: 'Failed to update pin' })
   }
-
-  const pin = await prisma.pin.update({
-    where: { id },
-    data: {
-      ...parsed.data,
-      ...(parsed.data.visitedAt ? { visitedAt: new Date(parsed.data.visitedAt) } : {}),
-    },
-  })
-
-  res.json({ success: true, data: pin })
 })
 
 pinsRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id)
-  const existing = await prisma.pin.findFirst({
-    where: { id, userId: req.userId },
-  })
-  if (!existing) {
-    res.status(404).json({ success: false, error: 'Pin not found' })
-    return
-  }
+  logger.debug({ userId: req.userId, pinId: id }, 'DELETE /pins/:id')
 
-  await prisma.pin.delete({ where: { id } })
-  res.json({ success: true, data: null })
+  try {
+    const existing = await prisma.pin.findFirst({
+      where: { id, userId: req.userId },
+    })
+    if (!existing) {
+      logger.warn({ userId: req.userId, pinId: id }, 'Pin not found for deletion')
+      res.status(404).json({ success: false, error: 'Pin not found' })
+      return
+    }
+
+    await prisma.pin.delete({ where: { id } })
+    logger.info({ userId: req.userId, pinId: id }, 'Pin deleted')
+    res.json({ success: true, data: null })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, pinId: id }, 'Failed to delete pin')
+    res.status(500).json({ success: false, error: 'Failed to delete pin' })
+  }
 })

@@ -8,7 +8,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   CULTURE: '🏛️', STAY: '🏡', OFFBEAT: '🧭',
 }
 
-function DayItemRow({ item, onAddToMap }: { item: DayItem; onAddToMap?: (item: DayItem) => void }) {
+function DayItemRow({ item, onAddToMap, isAdded }: { item: DayItem; onAddToMap?: (item: DayItem) => void; isAdded?: boolean }) {
   const isPin = item.type === 'pin'
   return (
     <View style={styles.itemRow}>
@@ -31,10 +31,17 @@ function DayItemRow({ item, onAddToMap }: { item: DayItem; onAddToMap?: (item: D
         </View>
         <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
         {item.isAddable && onAddToMap && (
-          <TouchableOpacity style={styles.addToMapBtn} onPress={() => onAddToMap(item)}>
-            <Ionicons name="add" size={12} color={colors.accentGreen} />
-            <Text style={styles.addToMapText}>Add to my map</Text>
-          </TouchableOpacity>
+          isAdded ? (
+            <View style={styles.addedBadge}>
+              <Ionicons name="checkmark" size={11} color={colors.accentGreen} />
+              <Text style={styles.addedText}>Added to map</Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.addToMapBtn} onPress={() => onAddToMap(item)}>
+              <Ionicons name="add" size={12} color={colors.accentGreen} />
+              <Text style={styles.addToMapText}>Add to my map</Text>
+            </TouchableOpacity>
+          )
         )}
       </View>
     </View>
@@ -44,9 +51,10 @@ function DayItemRow({ item, onAddToMap }: { item: DayItem; onAddToMap?: (item: D
 interface Props {
   document: TripDocument
   onAddToMap?: (item: DayItem) => void
+  addedNames?: Set<string>
 }
 
-export function ItineraryDocument({ document: doc, onAddToMap }: Props) {
+export function ItineraryDocument({ document: doc, onAddToMap, addedNames }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.docHeader}>
@@ -83,7 +91,12 @@ export function ItineraryDocument({ document: doc, onAddToMap }: Props) {
 
               <View style={styles.itemsList}>
                 {day.items.map((item, i) => (
-                  <DayItemRow key={i} item={item} onAddToMap={onAddToMap} />
+                  <DayItemRow
+                    key={i}
+                    item={item}
+                    onAddToMap={onAddToMap}
+                    isAdded={addedNames?.has(item.name.toLowerCase())}
+                  />
                 ))}
               </View>
             </View>
@@ -208,5 +221,12 @@ const styles = StyleSheet.create({
   },
   addToMapText: {
     fontSize: fontSizes.xs, fontFamily: 'DMSans-Medium', color: colors.accentGreen,
+  },
+  addedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: spacing[1],
+  },
+  addedText: {
+    fontSize: fontSizes.xs, fontFamily: 'DMSans-Medium', color: colors.textTertiary,
   },
 })

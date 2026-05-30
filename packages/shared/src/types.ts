@@ -41,8 +41,9 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
-  questionOptions?: string[]   // present on question-type AI messages
+  questionOptions?: string[]   // structured options for preference-gathering (question type)
   readyToPlan?: boolean        // when true, show "Plan now" button
+  suggestions?: string[]       // quick-reply chips on any AI message
 }
 
 export interface DayItem {

@@ -4,13 +4,14 @@ import {
   TouchableOpacity, KeyboardAvoidingView, Platform,
   ActivityIndicator, Modal, Alert, Animated, ScrollView,
 } from 'react-native'
+import ReAnimated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 import { api } from '../../src/lib/api'
 import { useAuthStore } from '../../src/stores/authStore'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { useEntitlements } from '../../src/hooks/useEntitlements'
-import { ItineraryDocument } from '../../src/components/ItineraryDocument'
 import { TripLibrary, SavedItinerarySummary } from '../../src/components/TripLibrary'
 import { PlannerLimitScreen } from '../../src/components/PlannerLimitScreen'
 import { SavePinModal } from '../../src/components/SavePinModal'
@@ -66,82 +67,118 @@ function ConflictModal({
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, onSuggestion }: {
+  message: ChatMessage
+  onSuggestion?: (text: string) => void
+}) {
   const isUser = message.role === 'user'
+  const hasSuggestions = !isUser && !!message.suggestions?.length && !!onSuggestion
+
   return (
-    <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
-      {!isUser && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>P</Text>
+    <View style={[styles.messageOuter, isUser && styles.messageOuterUser]}>
+      {/* Bubble row */}
+      <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
+        {!isUser && (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>P</Text>
+          </View>
+        )}
+        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
+          <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
+            {message.content}
+          </Text>
         </View>
-      )}
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-        <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
-          {message.content}
-        </Text>
       </View>
+
+      {/* Suggestion chips — horizontal scroll, indented under the bubble */}
+      {hasSuggestions && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.suggestionsScroll}
+          contentContainerStyle={styles.suggestionsContent}
+        >
+          {message.suggestions!.map(s => (
+            <TouchableOpacity
+              key={s}
+              style={styles.suggestionChip}
+              onPress={() => onSuggestion!(s)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="return-down-forward-outline" size={11} color={colors.accentGreen} />
+              <Text style={styles.suggestionChipText}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </View>
   )
 }
 
 // ─── Question bubble (preference gathering) ───────────────────────────────────
 
-function QuestionBubble({ message, selectedOption, planNowSent, onOptionSelect, onPlanNow }: {
+function QuestionBubble({ message, selectedOption, planNowSent, isLastMessage, onOptionSelect, onPlanNow }: {
   message: ChatMessage
   selectedOption?: string
   planNowSent: boolean
+  isLastMessage: boolean
   onOptionSelect: (opt: string) => void
   onPlanNow: () => void
 }) {
-  // For non-readyToPlan questions: chips lock after any selection
-  // For readyToPlan questions: chips stay selectable until "Plan now" is pressed
   const chipsLocked = message.readyToPlan ? planNowSent : !!selectedOption
+  const showOptions = isLastMessage  // hide options on past messages — user already replied
 
   return (
-    <View style={styles.messageRow}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>P</Text>
-      </View>
-      <View style={styles.questionWrap}>
-        <View style={[styles.bubble, styles.bubbleAI]}>
-          <Text style={styles.bubbleText}>{message.content}</Text>
+    <View style={styles.messageOuter}>
+      <View style={styles.messageRow}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>P</Text>
         </View>
-
-        <View style={styles.optionsGrid}>
-          {message.questionOptions!.map(opt => {
-            const isSelected = selectedOption === opt
-            const isDisabled = chipsLocked && !isSelected
-            return (
-              <TouchableOpacity
-                key={opt}
-                style={[
-                  styles.optionChip,
-                  isSelected && styles.optionChipSelected,
-                  isDisabled && styles.optionChipDisabled,
-                ]}
-                onPress={() => !chipsLocked && onOptionSelect(opt)}
-                activeOpacity={0.8}
-                disabled={chipsLocked && !isSelected}
-              >
-                {isSelected && (
-                  <Ionicons name="checkmark" size={11} color={colors.accentGreen} />
-                )}
-                <Text style={[styles.optionChipText, isSelected && styles.optionChipTextSelected]}>
-                  {opt}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
+        <View style={styles.questionWrap}>
+          <View style={[styles.bubble, styles.bubbleAI]}>
+            <Text style={styles.bubbleText}>{message.content}</Text>
+          </View>
         </View>
-
-        {message.readyToPlan && !planNowSent && (
-          <TouchableOpacity style={styles.planNowBtn} onPress={onPlanNow} activeOpacity={0.85}>
-            <Ionicons name="map-outline" size={15} color="#fff" />
-            <Text style={styles.planNowBtnText}>Plan now</Text>
-            <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
-        )}
       </View>
+
+      {showOptions && (
+        <View style={styles.optionsWrap}>
+          <View style={styles.optionsList}>
+            {message.questionOptions!.map(opt => {
+              const isSelected = selectedOption === opt
+              const isDisabled = chipsLocked && !isSelected
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.optionItem,
+                    isSelected && styles.optionItemSelected,
+                    isDisabled && styles.optionItemDisabled,
+                  ]}
+                  onPress={() => !chipsLocked && onOptionSelect(opt)}
+                  activeOpacity={0.75}
+                  disabled={chipsLocked && !isSelected}
+                >
+                  <View style={[styles.optionDot, isSelected && styles.optionDotSelected]}>
+                    {isSelected && <View style={styles.optionDotInner} />}
+                  </View>
+                  <Text style={[styles.optionItemText, isSelected && styles.optionItemTextSelected]}>
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {message.readyToPlan && !planNowSent && (
+            <TouchableOpacity style={styles.planNowBtn} onPress={onPlanNow} activeOpacity={0.85}>
+              <Ionicons name="map-outline" size={15} color="#fff" />
+              <Text style={styles.planNowBtnText}>Plan now</Text>
+              <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   )
 }
@@ -186,11 +223,13 @@ function TypingIndicator() {
 
 // ─── Plan screen ──────────────────────────────────────────────────────────────
 
+
 export default function PlanScreen() {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const refreshUser = useAuthStore(s => s.refreshUser)
   const { canSendPlannerMessage, plannerMessagesRemaining, isPro } = useEntitlements()
-  const { addPin } = usePinsStore()
+  const { addPin, pins } = usePinsStore()
 
   const [activeView, setActiveView] = useState<ActiveView>('chat')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -213,10 +252,9 @@ export default function PlanScreen() {
   // Save-to-map confirmation
   const [addToMapTarget, setAddToMapTarget] = useState<DayItem | null>(null)
 
-  // Itinerary drawer
-  const [itineraryModalVisible, setItineraryModalVisible] = useState(false)
 
   const listRef = useRef<FlatList>(null)
+  const pinWarningShown = useRef(false)
 
   // Load existing conversation + saved itineraries on mount
   useEffect(() => {
@@ -239,6 +277,28 @@ export default function PlanScreen() {
   const sendMessage = async (text: string, confirmedReset = false) => {
     const trimmed = text.trim()
     if (!trimmed || isSending) return
+
+    // One-time warning on very first message when user has no pins
+    const isFirstMessage = messages.filter(m => m.role === 'user').length === 0
+    if (isFirstMessage && pins.length === 0 && !pinWarningShown.current) {
+      pinWarningShown.current = true
+      Alert.alert(
+        'No pins yet',
+        `Your itinerary will be built from general suggestions — not places you've personally saved.\n\nAdd some pins to your map first for a personalised trip. You have ${plannerMessagesRemaining} free message${plannerMessagesRemaining !== 1 ? 's' : ''} left.`,
+        [
+          {
+            text: 'Add pins first',
+            onPress: () => router.push('/(tabs)/'),
+          },
+          {
+            text: 'Continue anyway',
+            style: 'default',
+            onPress: () => sendMessage(trimmed, confirmedReset),
+          },
+        ]
+      )
+      return
+    }
 
     const userMsg: ChatMessage = { role: 'user', content: trimmed, timestamp: new Date().toISOString() }
     setMessages(prev => [...prev, userMsg])
@@ -444,25 +504,23 @@ export default function PlanScreen() {
         </View>
       </View>
 
-      {/* ── Itinerary banner ── */}
+      {/* ── Itinerary banner (shared element origin) ── */}
       {activeView === 'chat' && tripDocument && (
-        <TouchableOpacity
-          style={styles.itineraryBanner}
-          onPress={() => setItineraryModalVisible(true)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.itineraryBannerLeft}>
-            <Ionicons name="map" size={16} color={colors.accentGreen} />
-            <View style={styles.itineraryBannerText}>
-              <Text style={styles.itineraryBannerTitle} numberOfLines={1}>
-                {currentDestination ?? tripDocument.destination}
-              </Text>
-              <Text style={styles.itineraryBannerSub}>
-                {tripDocument.days.length} days · tap to view itinerary
-              </Text>
+        <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/(modals)/itinerary')}>
+          <ReAnimated.View style={styles.itineraryBanner}>
+            <View style={styles.itineraryBannerLeft}>
+              <Ionicons name="map" size={16} color={colors.accentGreen} />
+              <View style={styles.itineraryBannerText}>
+                <Text style={styles.itineraryBannerTitle} numberOfLines={1}>
+                  {currentDestination ?? tripDocument.destination}
+                </Text>
+                <Text style={styles.itineraryBannerSub}>
+                  {tripDocument.days.length} days · tap to view itinerary
+                </Text>
+              </View>
             </View>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+          </ReAnimated.View>
         </TouchableOpacity>
       )}
 
@@ -482,18 +540,25 @@ export default function PlanScreen() {
             data={messages}
             keyExtractor={(_, i) => i.toString()}
             renderItem={({ item, index }) => {
+              const isLastMessage = index === messages.length - 1
               if (item.role === 'assistant' && item.questionOptions) {
                 return (
                   <QuestionBubble
                     message={item}
                     selectedOption={selectedOptions[index]}
                     planNowSent={planNowSent.has(index)}
+                    isLastMessage={isLastMessage}
                     onOptionSelect={(opt) => handleOptionSelect(index, opt, !!item.readyToPlan)}
                     onPlanNow={() => handlePlanNow(index)}
                   />
                 )
               }
-              return <MessageBubble message={item} />
+              return (
+                <MessageBubble
+                  message={item}
+                  onSuggestion={isLastMessage && item.role === 'assistant' ? sendMessage : undefined}
+                />
+              )
             }}
             contentContainerStyle={styles.messageList}
             onContentSizeChange={scrollToBottom}
@@ -561,33 +626,6 @@ export default function PlanScreen() {
           )}
         </>
       )}
-
-      {/* ── Itinerary full view modal ── */}
-      <Modal
-        visible={itineraryModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setItineraryModalVisible(false)}
-      >
-        <View style={styles.itineraryModal}>
-          <View style={styles.itineraryModalHeader}>
-            <Text style={styles.itineraryModalTitle} numberOfLines={1}>
-              {currentDestination ?? tripDocument?.destination}
-            </Text>
-            <TouchableOpacity onPress={() => setItineraryModalVisible(false)}>
-              <Ionicons name="close" size={22} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {tripDocument && (
-              <ItineraryDocument
-                document={tripDocument}
-                onAddToMap={(item) => { setItineraryModalVisible(false); handleAddToMap(item) }}
-              />
-            )}
-          </ScrollView>
-        </View>
-      </Modal>
 
       {/* ── Conflict modal ── */}
       <ConflictModal
@@ -664,43 +702,45 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs, fontFamily: 'DMSans-Regular', color: colors.textSecondary,
   },
 
-  itineraryModal: { flex: 1, backgroundColor: colors.bgPrimary },
-  itineraryModalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing[5], paddingVertical: spacing[4],
-    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
-  },
-  itineraryModalTitle: {
-    fontSize: fontSizes.lg, fontFamily: 'PlayfairDisplay-Bold', color: colors.textPrimary, flex: 1,
-  },
-
   typingBubble: { flexDirection: 'row', gap: 5, paddingVertical: spacing[4], paddingHorizontal: spacing[4] },
   typingDot: {
     width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.textTertiary,
   },
 
   // Question bubble
-  questionWrap: { flex: 1, maxWidth: '88%', gap: spacing[2] },
-  optionsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2],
+  questionWrap: { maxWidth: '88%' },
+
+  // Options block indented under the bubble (36px = avatar 28px + gap 8px)
+  optionsWrap: { marginLeft: 36, marginTop: spacing[2], gap: spacing[2] },
+  optionsList: { gap: spacing[2] },
+  optionItem: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing[3],
+    backgroundColor: colors.bgSecondary,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.borderLight,
+    paddingVertical: spacing[3], paddingHorizontal: spacing[4],
   },
-  optionChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.surface,
-    borderRadius: radius.full,
-    borderWidth: 1.5, borderColor: colors.borderMedium,
-    paddingVertical: spacing[2], paddingHorizontal: spacing[3],
-  },
-  optionChipSelected: {
+  optionItemSelected: {
+    backgroundColor: `${colors.accentGreen}10`,
     borderColor: colors.accentGreen,
-    backgroundColor: `${colors.accentGreen}12`,
   },
-  optionChipDisabled: { opacity: 0.35 },
-  optionChipText: {
-    fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular', color: colors.textPrimary,
+  optionItemDisabled: { opacity: 0.4 },
+  optionItemText: {
+    flex: 1, fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular', color: colors.textPrimary,
   },
-  optionChipTextSelected: {
+  optionItemTextSelected: {
     fontFamily: 'DMSans-Medium', color: colors.accentGreen,
+  },
+  optionDot: {
+    width: 18, height: 18, borderRadius: 9,
+    borderWidth: 1.5, borderColor: colors.borderMedium,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  optionDotSelected: { borderColor: colors.accentGreen },
+  optionDotInner: {
+    width: 9, height: 9, borderRadius: 4.5,
+    backgroundColor: colors.accentGreen,
   },
   planNowBtn: {
     flexDirection: 'row', alignItems: 'center', gap: spacing[2],
@@ -714,10 +754,27 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm, fontFamily: 'DMSans-Medium', color: '#fff',
   },
 
+  messageOuter: { marginBottom: spacing[3] },
+  messageOuterUser: {},
   messageRow: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: spacing[2], marginBottom: spacing[3],
+    flexDirection: 'row', alignItems: 'flex-end', gap: spacing[2],
   },
   messageRowUser: { flexDirection: 'row-reverse' },
+
+  // Suggestion chips — horizontal scroll under the AI bubble
+  suggestionsScroll: { marginTop: spacing[2], marginLeft: 36 }, // 28px avatar + 8px gap
+  suggestionsContent: { gap: spacing[2], paddingHorizontal: spacing[1] },
+  suggestionChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderWidth: 1, borderColor: colors.accentGreen,
+    borderRadius: radius.full,
+    paddingVertical: 5, paddingHorizontal: spacing[3],
+    backgroundColor: `${colors.accentGreen}08`,
+  },
+  suggestionChipText: {
+    fontSize: fontSizes.xs, fontFamily: 'DMSans-Medium',
+    color: colors.accentGreen, flexShrink: 1,
+  },
   avatar: {
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: colors.accentGreen,
@@ -727,7 +784,7 @@ const styles = StyleSheet.create({
   bubble: {
     maxWidth: '78%', borderRadius: radius.lg, padding: spacing[3], ...shadows.card,
   },
-  bubbleUser: { backgroundColor: colors.textPrimary, borderBottomRightRadius: 4 },
+  bubbleUser: { backgroundColor: colors.textPrimary, borderBottomRightRadius: 4, alignSelf: 'flex-end' },
   bubbleAI: {
     backgroundColor: colors.surface, borderWidth: 1,
     borderColor: colors.borderLight, borderBottomLeftRadius: 4,

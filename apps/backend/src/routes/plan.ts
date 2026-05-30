@@ -91,11 +91,12 @@ RULES:
 GATHERING PREFERENCES (critical flow for new trips):
 When a user asks for a new trip AND there is NO existing trip document:
 - DO NOT create an itinerary immediately
-- Respond with type "question" to collect key preferences first
+- Respond with type "question" (NOT "message") to collect key preferences first
 - Ask ONE focused question with 2–4 short options relevant to that destination and trip type
 - Cover: travel style, key interest (nature/food/adventure/culture), accommodation vibe
 - After 2–3 questions, set readyToPlan: true on the final question
 - When the user sends "Create my itinerary now" (triggered by the Plan now button), use ALL gathered context to build a rich, personalised itinerary
+- IMPORTANT: If you would ask a follow-up question about trip style, preferences or logistics → always use "question" type, never "message" type
 
 RESPONSE FORMAT — always return valid JSON, one of these four shapes:
 
@@ -162,8 +163,16 @@ When you have enough context (after 2–3 questions), set readyToPlan: true:
 4. Conversational reply (question, clarification, not a plan change):
 {
   "type": "message",
-  "content": "October is perfect for Dharamshala — post-monsoon, crisp air, ideal for Triund trek."
+  "content": "October is perfect for Dharamshala — post-monsoon, crisp air, ideal for Triund trek.",
+  "suggestions": ["What should I pack?", "Best treks nearby?", "How to get there from Delhi?"]
 }
+
+SUGGESTIONS RULE (critical):
+- ALWAYS include a "suggestions" array in EVERY response (message, question, itinerary_new, itinerary_update)
+- 2–3 short phrases (under 8 words each) the user is likely to say next
+- Make them specific to the context — not generic
+- For "question" type: include both "options" (structured preference chips) AND "suggestions" (free-text follow-ups)
+- For itinerary responses: suggest modifications like "Add a rest day", "Replace Day 3 stay", "Make it budget-friendly"
 
 Only use "question" when gathering preferences for a new trip (no existing document).
 Only use "itinerary_new" when triggered by "Create my itinerary now" or building a fresh plan with full context.
@@ -174,25 +183,33 @@ Use "message" for all other conversational exchanges.`
 // ── GET /plan/conversation — fetch current conversation ───────────────────
 
 planRouter.get('/conversation', async (req: AuthRequest, res: Response) => {
-  const conv = await prisma.conversation.findUnique({
-    where: { userId: req.userId },
-  })
-
-  res.json({
-    success: true,
-    data: {
-      tripDocument: conv?.tripDocument ?? null,
-      destination: conv?.destination ?? null,
-      messages: conv?.messages ?? [],
-    },
-  })
+  logger.debug({ userId: req.userId }, 'GET /plan/conversation')
+  try {
+    const conv = await prisma.conversation.findUnique({
+      where: { userId: req.userId },
+    })
+    logger.debug({ userId: req.userId, hasDocument: !!conv?.tripDocument, messageCount: (conv?.messages as unknown[])?.length ?? 0 }, 'Conversation fetched')
+    res.json({
+      success: true,
+      data: {
+        tripDocument: conv?.tripDocument ?? null,
+        destination: conv?.destination ?? null,
+        messages: conv?.messages ?? [],
+      },
+    })
+  } catch (err) {
+    logger.error({ err, userId: req.userId }, 'Failed to fetch conversation')
+    res.status(500).json({ success: false, error: 'Failed to fetch conversation' })
+  }
 })
 
 // ── POST /plan — send a message ───────────────────────────────────────────
 
 planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Response) => {
+  logger.debug({ userId: req.userId }, 'POST /plan')
   const parsed = sendMessageSchema.safeParse(req.body)
   if (!parsed.success) {
+    logger.warn({ userId: req.userId, errors: parsed.error.errors }, 'Plan message validation failed')
     res.status(400).json({ success: false, error: 'Invalid request body', code: 'VALIDATION_ERROR' })
     return
   }
@@ -253,6 +270,8 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
     ? `\n\nRECENT CONVERSATION:\n${recentMessages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     : ''
 
+  logger.info({ userId: req.userId, pinCount: pins.length, hasDocument: !!currentDoc, message: message.slice(0, 80) }, 'Calling Gemini')
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
     const result = await model.generateContent([
@@ -264,9 +283,11 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
+      logger.error({ userId: req.userId, rawText: text.slice(0, 200) }, 'Gemini returned no JSON')
       throw new Error('No JSON in Gemini response')
     }
-    const aiResponse = JSON.parse(jsonMatch[0]) as { type: string; document?: TripDocument; title?: string; destination?: string; content?: string; options?: string[]; readyToPlan?: boolean }
+    const aiResponse = JSON.parse(jsonMatch[0]) as { type: string; document?: TripDocument; title?: string; destination?: string; content?: string; options?: string[]; readyToPlan?: boolean; suggestions?: string[] }
+    logger.info({ userId: req.userId, responseType: aiResponse.type }, 'Gemini response parsed')
 
     // Build new messages array (capped at MESSAGE_CAP)
     const userMsg: ChatMessage = { role: 'user', content: message, timestamp: new Date().toISOString() }
@@ -288,6 +309,7 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
         questionOptions: aiResponse.options,
         readyToPlan: aiResponse.readyToPlan,
       }),
+      ...(aiResponse.suggestions?.length && { suggestions: aiResponse.suggestions }),
     }
     const updatedMessages = [...recentMessages, userMsg, assistantMsg].slice(-MESSAGE_CAP)
 
@@ -309,9 +331,10 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
       data: { aiMessagesUsed: { increment: 1 } },
     })
 
+    logger.info({ userId: req.userId, responseType: aiResponse.type }, 'Plan message handled successfully')
     res.json({ success: true, data: aiResponse })
   } catch (err: any) {
-    logger.error({ err }, 'Gemini API error')
+    logger.error({ err, userId: req.userId, status: err?.status }, 'Gemini API error')
     if (err?.status === 429) {
       res.status(503).json({ success: false, error: 'AI planner is busy right now. Please try again in a moment.', code: 'PLANNER_RATE_LIMITED' })
       return
@@ -323,116 +346,158 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
 // ── POST /plan/save — save current itinerary ──────────────────────────────
 
 planRouter.post('/save', async (req: AuthRequest, res: Response) => {
+  logger.debug({ userId: req.userId }, 'POST /plan/save')
   const parsed = saveTripSchema.safeParse(req.body)
 
-  const conv = await prisma.conversation.findUnique({ where: { userId: req.userId } })
-  if (!conv?.tripDocument) {
-    res.status(400).json({ success: false, error: 'No active itinerary to save', code: 'NO_DOCUMENT' })
-    return
+  try {
+    const conv = await prisma.conversation.findUnique({ where: { userId: req.userId } })
+    if (!conv?.tripDocument) {
+      logger.warn({ userId: req.userId }, 'Save itinerary: no active document')
+      res.status(400).json({ success: false, error: 'No active itinerary to save', code: 'NO_DOCUMENT' })
+      return
+    }
+
+    const doc = conv.tripDocument as unknown as TripDocument
+    const title = parsed.data?.title ?? `${doc.days.length} Days in ${conv.destination ?? doc.destination}`
+
+    const saved = await prisma.savedItinerary.create({
+      data: {
+        userId: req.userId!,
+        title,
+        destination: conv.destination ?? doc.destination,
+        document: conv.tripDocument as object,
+        messages: { set: conv.messages.filter(m => m !== null) as object[] },
+      },
+    })
+    logger.info({ userId: req.userId, itineraryId: saved.id, title }, 'Itinerary saved')
+    res.json({ success: true, data: saved })
+  } catch (err) {
+    logger.error({ err, userId: req.userId }, 'Failed to save itinerary')
+    res.status(500).json({ success: false, error: 'Failed to save itinerary' })
   }
-
-  const doc = conv.tripDocument as unknown as TripDocument
-  const title = parsed.data?.title ?? `${doc.days.length} Days in ${conv.destination ?? doc.destination}`
-
-  const saved = await prisma.savedItinerary.create({
-    data: {
-      userId: req.userId!,
-      title,
-      destination: conv.destination ?? doc.destination,
-      document: conv.tripDocument as object,
-      messages: { set: conv.messages.filter(m => m !== null) as object[] },
-    },
-  })
-
-  res.json({ success: true, data: saved })
 })
 
 // ── GET /plan/saved — list saved itineraries ──────────────────────────────
 
 planRouter.get('/saved', async (req: AuthRequest, res: Response) => {
-  const saved = await prisma.savedItinerary.findMany({
-    where: { userId: req.userId },
-    select: { id: true, title: true, destination: true, createdAt: true },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  res.json({ success: true, data: saved })
+  logger.debug({ userId: req.userId }, 'GET /plan/saved')
+  try {
+    const saved = await prisma.savedItinerary.findMany({
+      where: { userId: req.userId },
+      select: { id: true, title: true, destination: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    logger.debug({ userId: req.userId, count: saved.length }, 'Saved itineraries fetched')
+    res.json({ success: true, data: saved })
+  } catch (err) {
+    logger.error({ err, userId: req.userId }, 'Failed to fetch saved itineraries')
+    res.status(500).json({ success: false, error: 'Failed to fetch saved itineraries' })
+  }
 })
 
 // ── GET /plan/saved/:id — get a saved itinerary ───────────────────────────
 
 planRouter.get('/saved/:id', async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
-  const itinerary = await prisma.savedItinerary.findFirst({
-    where: { id, userId: req.userId },
-  })
+  logger.debug({ userId: req.userId, itineraryId: id }, 'GET /plan/saved/:id')
+  try {
+    const itinerary = await prisma.savedItinerary.findFirst({
+      where: { id, userId: req.userId },
+    })
 
-  if (!itinerary) {
-    res.status(404).json({ success: false, error: 'Itinerary not found' })
-    return
+    if (!itinerary) {
+      logger.warn({ userId: req.userId, itineraryId: id }, 'Saved itinerary not found')
+      res.status(404).json({ success: false, error: 'Itinerary not found' })
+      return
+    }
+
+    res.json({ success: true, data: itinerary })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, itineraryId: id }, 'Failed to fetch saved itinerary')
+    res.status(500).json({ success: false, error: 'Failed to fetch itinerary' })
   }
-
-  res.json({ success: true, data: itinerary })
 })
 
 // ── DELETE /plan/saved/:id — delete a saved itinerary ────────────────────
 
 planRouter.delete('/saved/:id', async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
-  const itinerary = await prisma.savedItinerary.findFirst({
-    where: { id, userId: req.userId },
-  })
+  logger.debug({ userId: req.userId, itineraryId: id }, 'DELETE /plan/saved/:id')
+  try {
+    const itinerary = await prisma.savedItinerary.findFirst({
+      where: { id, userId: req.userId },
+    })
 
-  if (!itinerary) {
-    res.status(404).json({ success: false, error: 'Itinerary not found' })
-    return
+    if (!itinerary) {
+      logger.warn({ userId: req.userId, itineraryId: id }, 'Saved itinerary not found for deletion')
+      res.status(404).json({ success: false, error: 'Itinerary not found' })
+      return
+    }
+
+    await prisma.savedItinerary.delete({ where: { id } })
+    logger.info({ userId: req.userId, itineraryId: id }, 'Saved itinerary deleted')
+    res.json({ success: true, data: null })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, itineraryId: id }, 'Failed to delete saved itinerary')
+    res.status(500).json({ success: false, error: 'Failed to delete itinerary' })
   }
-
-  await prisma.savedItinerary.delete({ where: { id } })
-  res.json({ success: true, data: null })
 })
 
 // ── POST /plan/load/:id — load saved itinerary into active conversation ───
 
 planRouter.post('/load/:id', async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
-  const itinerary = await prisma.savedItinerary.findFirst({
-    where: { id, userId: req.userId },
-  })
+  logger.debug({ userId: req.userId, itineraryId: id }, 'POST /plan/load/:id')
+  try {
+    const itinerary = await prisma.savedItinerary.findFirst({
+      where: { id, userId: req.userId },
+    })
 
-  if (!itinerary) {
-    res.status(404).json({ success: false, error: 'Itinerary not found' })
-    return
+    if (!itinerary) {
+      logger.warn({ userId: req.userId, itineraryId: id }, 'Saved itinerary not found for load')
+      res.status(404).json({ success: false, error: 'Itinerary not found' })
+      return
+    }
+
+    const doc = itinerary.document as unknown as TripDocument
+
+    await prisma.conversation.upsert({
+      where: { userId: req.userId },
+      create: {
+        userId: req.userId!,
+        tripDocument: itinerary.document ?? undefined,
+        destination: itinerary.destination,
+        messages: [],
+      },
+      update: {
+        tripDocument: itinerary.document ?? undefined,
+        destination: itinerary.destination,
+        messages: [],
+      },
+    })
+
+    logger.info({ userId: req.userId, itineraryId: id, destination: itinerary.destination }, 'Saved itinerary loaded into active conversation')
+    res.json({ success: true, data: { tripDocument: doc, destination: itinerary.destination, messages: [] } })
+  } catch (err) {
+    logger.error({ err, userId: req.userId, itineraryId: id }, 'Failed to load saved itinerary')
+    res.status(500).json({ success: false, error: 'Failed to load itinerary' })
   }
-
-  const doc = itinerary.document as unknown as TripDocument
-
-  await prisma.conversation.upsert({
-    where: { userId: req.userId },
-    create: {
-      userId: req.userId!,
-      tripDocument: itinerary.document ?? undefined,
-      destination: itinerary.destination,
-      messages: [],
-    },
-    update: {
-      tripDocument: itinerary.document ?? undefined,
-      destination: itinerary.destination,
-      messages: [],
-    },
-  })
-
-  res.json({ success: true, data: { tripDocument: doc, destination: itinerary.destination, messages: [] } })
 })
 
 // ── POST /plan/reset — clear active conversation ──────────────────────────
 
 planRouter.post('/reset', async (req: AuthRequest, res: Response) => {
-  await prisma.conversation.upsert({
-    where: { userId: req.userId },
-    create: { userId: req.userId!, messages: [], tripDocument: undefined, destination: null },
-    update: { tripDocument: undefined, destination: null, messages: [] },
-  })
-
-  res.json({ success: true, data: null })
+  logger.debug({ userId: req.userId }, 'POST /plan/reset')
+  try {
+    await prisma.conversation.upsert({
+      where: { userId: req.userId },
+      create: { userId: req.userId!, messages: [], tripDocument: undefined, destination: null },
+      update: { tripDocument: undefined, destination: null, messages: [] },
+    })
+    logger.info({ userId: req.userId }, 'Conversation reset')
+    res.json({ success: true, data: null })
+  } catch (err) {
+    logger.error({ err, userId: req.userId }, 'Failed to reset conversation')
+    res.status(500).json({ success: false, error: 'Failed to reset conversation' })
+  }
 })

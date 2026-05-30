@@ -85,6 +85,15 @@ export default function RootLayout() {
           <Stack.Screen name="(modals)/pin-detail" options={{ presentation: 'modal' }} />
           <Stack.Screen name="(modals)/pin-confirm" options={{ presentation: 'modal' }} />
           <Stack.Screen name="(modals)/manual-add" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="(modals)/itinerary"
+            options={{
+              presentation: 'modal',
+              gestureEnabled: true,
+              headerShown: false,
+              animation: 'slide_from_bottom',
+            }}
+          />
           <Stack.Screen name="handle-share" />
         </Stack>
       </ShareIntentProvider>
