@@ -28,6 +28,9 @@ interface PlaceData {
   category: string
   confidence: number
   sourceUrl: string
+  osmType?: string | null
+  osmId?: string | null
+  locationType?: string | null
 }
 
 interface NominatimResult {
@@ -101,6 +104,9 @@ export default function PinConfirmModal() {
         sourceThumbnailUrl: placeData.thumbnailUrl,
         category: placeData.category,
         status: 'WISHLIST',
+        osmType: placeData.osmType,
+        osmId: placeData.osmId,
+        locationType: placeData.locationType,
       })
       await fetchPins()
       const newPinId = res.data.data?.id

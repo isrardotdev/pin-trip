@@ -100,6 +100,28 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - MapLibreReactNative (11.2.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RCTDeprecation (0.81.5)
   - RCTRequired (0.81.5)
   - RCTTypeSafety (0.81.5):
@@ -1379,8 +1401,6 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-  - react-native-maps (1.20.1):
-    - React-Core
   - react-native-safe-area-context (5.6.2):
     - hermes-engine
     - RCTRequired
@@ -2046,7 +2066,7 @@ DEPENDENCIES:
   - "ExpoAsset (from `../../../node_modules/.pnpm/expo-asset@12.0.13_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+me_acc7f5f32bf77f8ebf36e03c8ac09f2c/node_modules/expo-asset/ios`)"
   - "ExpoFileSystem (from `../../../node_modules/.pnpm/expo-file-system@19.0.22_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-nat_ff6f7e1c9e8f1ae612cfaacdc8de68d3/node_modules/expo-file-system/ios`)"
   - "ExpoFont (from `../../../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+met_1b16e7bc7c228189012c73176f9d200b/node_modules/expo-font/ios`)"
-  - "ExpoHead (from `../../../node_modules/.pnpm/expo-router@6.0.23_a26249b33ed6cd48b9558859cafb4f28/node_modules/expo-router/ios`)"
+  - "ExpoHead (from `../../../node_modules/.pnpm/expo-router@6.0.23_82db2b36f12664a444047087d70e238d/node_modules/expo-router/ios`)"
   - "ExpoKeepAwake (from `../../../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.34_react@19.1.0/node_modules/expo-keep-awake/ios`)"
   - "ExpoLinking (from `../../../node_modules/.pnpm/expo-linking@8.0.12_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+m_391cf17b1b9b39cc90b4e8d52c44c66c/node_modules/expo-linking/ios`)"
   - "ExpoModulesCore (from `../../../node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-con_ac76d47430b4ab29f9d83bb0fefea6a0/node_modules/expo-modules-core`)"
@@ -2056,6 +2076,7 @@ DEPENDENCIES:
   - "FBLazyVector (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/Libraries/FBLazyVector`)"
   - "hermes-engine (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)"
   - "lottie-react-native (from `../../../node_modules/.pnpm/lottie-react-native@7.3.8_react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-co_d7925f1576b0780c5d03c8260d559294/node_modules/lottie-react-native`)"
+  - "MapLibreReactNative (from `../../../node_modules/.pnpm/@maplibre+maplibre-react-native@11.2.1_@expo+config-plugins@55.0.10_@types+geojson@7946_a70d8c2b671613cfe988152c0ec0bae9/node_modules/@maplibre/maplibre-react-native`)"
   - "RCTDeprecation (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)"
   - "RCTRequired (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/Libraries/Required`)"
   - "RCTTypeSafety (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/Libraries/TypeSafety`)"
@@ -2090,7 +2111,6 @@ DEPENDENCIES:
   - "React-logger (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon/logger`)"
   - "React-Mapbuffer (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon`)"
   - "React-microtasksnativemodule (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)"
-  - "react-native-maps (from `../../../node_modules/.pnpm/react-native-maps@1.20.1_react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-con_233fe9ccb114ea27d6a3738ff02cf770/node_modules/react-native-maps`)"
   - "react-native-safe-area-context (from `../../../node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.0_@react-nati_062667ff269dd337349e29fda663badf/node_modules/react-native-safe-area-context`)"
   - "React-NativeModulesApple (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)"
   - "React-oscompat (from `../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon/oscompat`)"
@@ -2150,7 +2170,7 @@ EXTERNAL SOURCES:
   ExpoFont:
     :path: "../../../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+met_1b16e7bc7c228189012c73176f9d200b/node_modules/expo-font/ios"
   ExpoHead:
-    :path: "../../../node_modules/.pnpm/expo-router@6.0.23_a26249b33ed6cd48b9558859cafb4f28/node_modules/expo-router/ios"
+    :path: "../../../node_modules/.pnpm/expo-router@6.0.23_82db2b36f12664a444047087d70e238d/node_modules/expo-router/ios"
   ExpoKeepAwake:
     :path: "../../../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.34_react@19.1.0/node_modules/expo-keep-awake/ios"
   ExpoLinking:
@@ -2170,6 +2190,8 @@ EXTERNAL SOURCES:
     :tag: hermes-2025-07-07-RNv0.81.0-e0fc67142ec0763c6b6153ca2bf96df815539782
   lottie-react-native:
     :path: "../../../node_modules/.pnpm/lottie-react-native@7.3.8_react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-co_d7925f1576b0780c5d03c8260d559294/node_modules/lottie-react-native"
+  MapLibreReactNative:
+    :path: "../../../node_modules/.pnpm/@maplibre+maplibre-react-native@11.2.1_@expo+config-plugins@55.0.10_@types+geojson@7946_a70d8c2b671613cfe988152c0ec0bae9/node_modules/@maplibre/maplibre-react-native"
   RCTDeprecation:
     :path: "../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2236,8 +2258,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-config@0.85.3_@babel+core@7._03bfb29fbaad688f405e50640065393e/node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
-  react-native-maps:
-    :path: "../../../node_modules/.pnpm/react-native-maps@1.20.1_react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-con_233fe9ccb114ea27d6a3738ff02cf770/node_modules/react-native-maps"
   react-native-safe-area-context:
     :path: "../../../node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.29.0_@react-nati_062667ff269dd337349e29fda663badf/node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2334,6 +2354,7 @@ SPEC CHECKSUMS:
   hermes-engine: 9f4dfe93326146a1c99eb535b1cb0b857a3cd172
   lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
   lottie-react-native: d954917e9e5f3217eac0ca0eb3be75de412dea93
+  MapLibreReactNative: ce2231b1db2da5ad15fb182481392d2a3eba6c33
   RCTDeprecation: 943572d4be82d480a48f4884f670135ae30bf990
   RCTRequired: 8f3cfc90cc25cf6e420ddb3e7caaaabc57df6043
   RCTTypeSafety: 16a4144ca3f959583ab019b57d5633df10b5e97c
@@ -2367,7 +2388,6 @@ SPEC CHECKSUMS:
   React-logger: 50fdb9a8236da90c0b1072da5c32ee03aeb5bf28
   React-Mapbuffer: 9050ee10c19f4f7fca8963d0211b2854d624973e
   React-microtasksnativemodule: f775db9e991c6f3b8ccbc02bfcde22770f96e23b
-  react-native-maps: 9febd31278b35cd21e4fad2cf6fa708993be5dab
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   React-NativeModulesApple: 8969913947d5b576de4ed371a939455a8daf28aa
   React-oscompat: ce47230ed20185e91de62d8c6d139ae61763d09c
@@ -2407,6 +2427,6 @@ SPEC CHECKSUMS:
   RNWorklets: 7f0ef37018543ab20ef983b964e80438225f5af2
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
 
-PODFILE CHECKSUM: e2293c7d24b11319785cb8679a8c695c6f939554
+PODFILE CHECKSUM: 4b7901f7aebd0ac129bf214225289235be7c994f
 
 COCOAPODS: 1.16.2

@@ -156,30 +156,74 @@ interface NominatimResult {
   lat: string
   lon: string
   display_name: string
+  osm_type: string   // "node" | "way" | "relation"
+  osm_id: number
+  class: string      // "boundary" | "natural" | "amenity" | "place" etc.
+  type: string       // "administrative" | "valley" | "restaurant" etc.
+  extratags?: { admin_level?: string }
+}
+
+type LocationType = 'POINT' | 'AREA'
+
+interface ClassifyResult {
+  locationType: LocationType
+  blocked: boolean
+  blockReason?: string
+}
+
+function classifyNominatimResult(result: NominatimResult): ClassifyResult {
+  const adminLevel = parseInt(result.extratags?.admin_level ?? '99', 10)
+
+  // Block countries and states (admin_level ≤ 4 for India)
+  if (result.class === 'boundary' && result.type === 'administrative' && adminLevel <= 4) {
+    const label = adminLevel <= 2 ? 'country' : 'state'
+    return { locationType: 'AREA', blocked: true, blockReason: `Too broad — this is an entire ${label}` }
+  }
+
+  // Areas: geographic features and administrative subdivisions below state
+  if (result.osm_type === 'relation' || result.osm_type === 'way') {
+    return { locationType: 'AREA', blocked: false }
+  }
+
+  // Everything else (nodes: temples, cafes, hotels, etc.) → point
+  return { locationType: 'POINT', blocked: false }
 }
 
 async function geocodeQuery(query: string): Promise<NominatimResult | null> {
   const response = await axios.get<NominatimResult[]>('https://nominatim.openstreetmap.org/search', {
-    params: { q: query, format: 'json', limit: 1 },
+    params: { q: query, format: 'json', limit: 1, extratags: 1 },
     headers: { 'User-Agent': config.nominatimUserAgent },
   })
   return response.data[0] || null
 }
 
-async function geocode(name: string, city: string, state: string): Promise<NominatimResult | null> {
-  // Try progressively broader queries until one returns a result
+interface GeocodeResult {
+  nominatim: NominatimResult
+  locationType: LocationType
+  blocked: boolean
+  blockReason?: string
+}
+
+async function geocode(name: string, city: string, state: string): Promise<GeocodeResult | null> {
+  // Try progressively broader queries until one returns a result.
+  // Include [name] alone so "Spiti Valley" is tried even when city is null,
+  // before falling back to state-only queries that would get blocked.
   const queries = [
-    [name, city, state],   // specific: "Ruh Musafir, Shangarh, Himachal Pradesh"
-    [city, state],          // area: "Shangarh, Himachal Pradesh"
-    [state],                // region: "Himachal Pradesh"
-  ].map(parts => parts.filter(Boolean).join(', ')).filter(Boolean)
+    [name, city, state],
+    [name],
+    [city, state],
+  ]
+    .map(parts => parts.filter(Boolean).join(', '))
+    .filter(Boolean)
+    .filter((q, i, arr) => arr.indexOf(q) === i) // dedupe
 
   for (const query of queries) {
     logger.info({ query }, 'Geocoding')
     const result = await geocodeQuery(query)
     if (result) {
-      logger.info({ query, display_name: result.display_name }, 'Geocode result')
-      return result
+      logger.info({ query, display_name: result.display_name, osm_type: result.osm_type, osm_id: result.osm_id }, 'Geocode result')
+      const classification = classifyNominatimResult(result)
+      return { nominatim: result, ...classification }
     }
   }
 
@@ -203,6 +247,9 @@ interface PlaceData {
   category: string
   confidence: number
   sourceUrl: string
+  osmType?: string | null
+  osmId?: string | null   // BigInt serialised as string for JSON safety
+  locationType?: string | null
 }
 
 interface JobResult {
@@ -260,11 +307,20 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
     }
 
     // ── Geocode ───────────────────────────────────────────────────────────
-    const geo = await geocode(extraction.name, extraction.city, extraction.state)
-    if (!geo) {
+    const geoResult = await geocode(extraction.name, extraction.city, extraction.state)
+    if (!geoResult) {
       logger.info({ jobId }, 'Geocoding failed — returning null')
       return { placeData: null }
     }
+
+    if (geoResult.blocked) {
+      logger.info({ jobId, blockReason: geoResult.blockReason }, 'Geocode blocked — location too broad')
+      return { placeData: null }
+    }
+
+    const { nominatim: geo, locationType } = geoResult
+    const osmType = geo.osm_type
+    const osmId = BigInt(geo.osm_id)
 
     // ── Level 2: name+city+state dedup (different reel, same place) ───────
     let place = await prisma.place.findFirst({
@@ -290,10 +346,13 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
           thumbnailUrl: thumbnailUrl || null,
           aiConfidence: extraction.confidence,
           category: extraction.category as Category,
+          osmType,
+          osmId,
+          locationType,
           sources: { create: { url } },
         },
       })
-      logger.info({ jobId, placeId: place.id }, 'New Place created')
+      logger.info({ jobId, placeId: place.id, locationType }, 'New Place created')
     }
 
     logger.info({ jobId, placeId: place.id }, 'Returning place data for user confirmation')
@@ -310,6 +369,9 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
         category: place.category,
         confidence: extraction.confidence,
         sourceUrl: url,
+        osmType: place.osmType,
+        osmId: place.osmId?.toString() ?? null,
+        locationType: place.locationType,
       },
     }
   } finally {

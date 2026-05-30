@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
+import Constants from 'expo-constants'
 import { Pin, PinStatus, Category } from '@pintrip/shared'
 import MapNative, { MapNativeRef } from '../../src/components/map/MapNative'
 import PinDetailInline from '../../src/components/map/PinDetailInline'
@@ -42,6 +43,16 @@ const CATEGORY_FILTERS: { label: string; value: Category }[] = [
 const CATEGORY_ICONS: Record<string, string> = {
   NATURE: '🌿', FOOD: '🍜', ADVENTURE: '⛰️',
   CULTURE: '🏛️', STAY: '🏡', OFFBEAT: '🧭',
+}
+
+// Zoom level by category — specific venues zoom in tight, broad areas stay wider
+const CATEGORY_ZOOM: Record<string, number> = {
+  FOOD:      16,  // restaurant / café — street level, building visible
+  STAY:      16,  // hotel / guesthouse — property level
+  CULTURE:   15,  // temple / museum — block level, landmark clear
+  OFFBEAT:   14,  // quirky specific spot — neighbourhood level
+  ADVENTURE: 13,  // trek start, campsite — trail/area visible
+  NATURE:    12,  // valley / forest / river — broad landscape visible
 }
 
 const STATUS_COLORS: Record<PinStatus, string> = {
@@ -98,13 +109,14 @@ function PinCard({ pin, onPress, selected, isNew }: { pin: Pin; onPress: () => v
 export default function HomeScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { pins, fetchPins } = usePinsStore()
+  const { pins, fetchPins, fetchPolygon } = usePinsStore()
   const { newPinId } = useLocalSearchParams<{ newPinId?: string }>()
 
   const [statusFilter, setStatusFilter] = useState<PinStatus | 'ALL'>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<Category | 'ALL'>('ALL')
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null)
   const [newlyAddedPinId, setNewlyAddedPinId] = useState<string | null>(null)
+  const [selectedBoundary, setSelectedBoundary] = useState<GeoJSON.FeatureCollection | null>(null)
 
   const mapRef = useRef<MapNativeRef>(null)
   const flyToTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -146,18 +158,51 @@ export default function HomeScreen() {
 
   const selectPin = (pinId: string) => {
     setSelectedPinId(pinId)
-    const pin = filteredPins.find(p => p.id === pinId)
+    setSelectedBoundary(null)
+    const pin = pins.find(p => p.id === pinId)
     if (!pin) return
-    // Debounce flyTo so rapid navigation doesn't thrash the map
+
     if (flyToTimer.current) clearTimeout(flyToTimer.current)
-    flyToTimer.current = setTimeout(() => {
-      mapRef.current?.flyTo(pin.lng, pin.lat)
-    }, FLY_TO_DEBOUNCE_MS)
+
+    if (pin.locationType === 'AREA' && pin.osmType && pin.osmId) {
+      // Fetch polygon then fitBounds
+      flyToTimer.current = setTimeout(async () => {
+        const boundary = await fetchPolygon(pin.osmType!, pin.osmId!)
+        if (boundary) {
+          setSelectedBoundary(boundary)
+          // Compute bbox from polygon coordinates and fitBounds
+          const coords = boundary.features.flatMap(f => {
+            const geom = f.geometry as GeoJSON.Polygon | GeoJSON.MultiPolygon
+            if (geom.type === 'Polygon') return geom.coordinates.flat()
+            if (geom.type === 'MultiPolygon') return geom.coordinates.flat(2)
+            return []
+          }) as [number, number][]
+          if (coords.length > 0) {
+            const lngs = coords.map((c: [number, number]) => c[0])
+            const lats = coords.map((c: [number, number]) => c[1])
+            mapRef.current?.fitBounds(
+              [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+              { padding: 40, duration: 800 },
+            )
+          }
+        } else {
+          // Fallback to flyTo if polygon unavailable
+          mapRef.current?.flyTo(pin.lng, pin.lat, CATEGORY_ZOOM[pin.category] ?? 13)
+        }
+      }, FLY_TO_DEBOUNCE_MS)
+    } else {
+      const zoom = CATEGORY_ZOOM[pin.category] ?? 13
+      flyToTimer.current = setTimeout(() => {
+        mapRef.current?.flyTo(pin.lng, pin.lat, zoom)
+      }, FLY_TO_DEBOUNCE_MS)
+    }
   }
 
   const clearSelection = () => {
     setSelectedPinId(null)
+    setSelectedBoundary(null)
     if (flyToTimer.current) clearTimeout(flyToTimer.current)
+    mapRef.current?.fitAllPins()
   }
 
   const goToPrev = () => {
@@ -179,6 +224,8 @@ export default function HomeScreen() {
           pins={filteredPins}
           selectedPinId={selectedPinId}
           onPinPress={selectPin}
+          mapStyle={Constants.expoConfig?.extra?.maptilerStyleUrl ?? process.env.EXPO_PUBLIC_MAPTILER_STYLE_URL}
+          selectedBoundary={selectedBoundary}
         />
       </Animated.View>
 

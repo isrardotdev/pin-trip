@@ -229,12 +229,16 @@ handle-share.tsx       → Intercepts share intent, triggers pipeline
 **Map section:**
 - MapLibre with dark Maptiler style (`MAPTILER_STYLE_URL` from env)
 - Map fills the full phone width including under the status bar
-- Custom pins — NOT the default MapLibre markers. Use `SymbolLayer` or `MarkerView` with custom SVG pin components
+- Custom pins — NOT the default MapLibre markers. Rendered via GeoJSONSource + Layer (GPU-accelerated, handles hundreds of pins)
+- Pin shapes:
+  - `locationType=POINT` (temple, café, hotel) → circle marker
+  - `locationType=AREA` (valley, national park, district) → diamond / rotated-square marker
 - Pin states (visual):
-  - `WISHLIST`: white circle, thin green border, subtle drop shadow
-  - `PLANNING`: amber filled circle, pulsing ring animation (Reanimated)
-  - `VISITED`: forest green filled circle, white checkmark glyph
-- Cluster behavior: when pins are close, show a numbered cluster bubble (green circle, white number). Tap to zoom in and expand.
+  - `WISHLIST`: white fill, green border
+  - `PLANNING`: amber fill, pulsing ring (Reanimated)
+  - `VISITED`: forest green fill, white checkmark glyph
+- When AREA pin is selected: polygon boundary fetched on demand from Nominatim lookup API (osm_ids=R{osmId}), rendered as FillLayer (green, 12% opacity) + LineLayer (green, 2px). Camera fits to polygon bounds. Polygon cached in Zustand for the session.
+- Cluster behavior: numbered cluster bubble (green circle, white number). Tap → zoom to expansion level + 0.5 overshoot.
 - FAB (+) button: bottom-right of map, `#2D6A4F`, circular, shadow. Tap → open `manual-add` modal.
 
 **List section:**
@@ -452,7 +456,10 @@ Step 3: Extract location via LLM
 Step 4: Geocode via Nominatim
   → GET https://nominatim.openstreetmap.org/search
   → params: { q: `${name} ${city} ${state}`, format: 'json', limit: 1 }
-  → result: { lat, lon, display_name }
+  → result: { lat, lon, display_name, osm_type, osm_id, class, type, extratags.admin_level }
+  → Classify: osm_type=node → POINT. osm_type=relation/way → AREA.
+  → Block: class=boundary + type=administrative + admin_level ≤ 4 (country/state)
+  → Store osmType + osmId + locationType on Place (polygons fetched on demand by client, not stored)
 
 Step 5: Check confidence
   → if confidence >= 0.6 AND nominatim returned results:
@@ -542,6 +549,10 @@ model UnresolvedPin {
   aiResponse    String?    // raw JSON from extraction step
   createdAt     DateTime   @default(now())
 }
+
+// Note: actual schema has Place + PlaceSource models for canonical dedup (Phase 3).
+// Place also carries osmType/osmId/locationType added in Phase 5.5.
+// See apps/backend/prisma/schema.prisma for the live schema.
 
 model DiscoverPlace {
   id          String    @id @default(cuid())
@@ -961,6 +972,90 @@ Build **strictly** in this sequence. Do not skip ahead.
 - [ ] Mobile: Show "X free messages remaining" badge in chat header for free users
 - [ ] Mobile: Show `PaywallScreen` when `canSendPlannerMessage` is false
 
+**Phase 5.5 — Area Pins + Polygon Boundaries**
+
+Distinguish between *point locations* (a temple, a café, a guesthouse) and *area locations* (a valley, a national park, a district). Area pins show a polygon boundary on the map when tapped, and use a different marker shape so they're visually distinct even when zoomed out.
+
+---
+
+**Key architectural decision — store OSM IDs, fetch polygons on demand:**
+
+We do NOT store polygon GeoJSON in our database. Instead we store two tiny fields (`osmType` + `osmId`) on the `Place` model. When the user taps an AREA pin, the mobile app calls the Nominatim lookup API directly from the device to fetch the polygon on demand. This keeps our DB lean (8 bytes per place vs 50–300KB), and polygons are always up to date as OSM improves boundaries over time.
+
+```
+Mobile → tap AREA pin
+  → GET https://nominatim.openstreetmap.org/lookup
+      ?osm_ids=R{osmId}&format=json&polygon_geojson=1&polygon_threshold=0.005
+  → render FillLayer + LineLayer from returned GeoJSON
+  → cache result in Zustand (in-memory, session-scoped)
+```
+
+`polygon_threshold=0.005` uses Nominatim's built-in Ramer-Douglas-Peucker simplification — reduces polygon size ~85% with zero perceptible visual difference at mobile zoom levels.
+
+**Caching:** Polygon is cached in a Zustand `Map<osmId, GeoJSON>` for the current app session. First tap: ~300–500ms fetch. Subsequent taps that session: instant. Cache is cleared on app restart (no AsyncStorage needed for MVP — the fetch is fast enough). Future upgrade: backend proxy cache where our server fetches once and serves all users.
+
+**App Store / Nominatim policy:** Calling Nominatim from the device is fine with Apple. Nominatim's public instance usage policy is also not a concern at MVP scale — polygon fetches only happen on explicit user tap of AREA pins, not on every screen load or in background. At scale, swap the URL to a self-hosted Nominatim instance (open source, $10/mo droplet) with zero code changes.
+
+---
+
+**State/country blocking:**
+
+OSM `admin_level` encodes the administrative hierarchy:
+- `admin_level=2` → country
+- `admin_level=4` → state (India: Himachal Pradesh, Rajasthan, etc.)
+- `admin_level=5` → district
+- `admin_level=6` → tehsil/block
+- `admin_level=7–8` → city/town/village
+
+Block saving `admin_level ≤ 4`. Show error: *"This is an entire state — try searching for a specific place within it."*
+Allow: district, city, town, valley, national park, forest, beach, lake — anything more specific than a state.
+
+---
+
+**Visual differentiation on map:**
+
+POINT pins (temple, café, hotel) → circle marker (current behavior)
+AREA pins (valley, national park, district) → diamond / rounded-square marker
+
+This gives instant visual signal at any zoom level: "that one is a region, not a specific spot."
+
+---
+
+**What changes:**
+
+*Backend:*
+- [ ] Schema migration: add `osmType String?`, `osmId BigInt?`, `locationType String?` (`POINT` | `AREA`) to `Place` model
+- [ ] Geocode util: add `osm_type` and `osm_id` to `NominatimResult` interface; parse and return them alongside lat/lng
+- [ ] Classify result: `osm_type=node` → POINT. `osm_type=relation/way` → AREA. Block if `class=boundary` + `type=administrative` + `admin_level ≤ 4`
+- [ ] `reelParser.worker.ts`: store `osmType`, `osmId`, `locationType` on Place creation; return them in `PlaceData`
+- [ ] `POST /pins` route: pass `osmType`, `osmId`, `locationType` through when creating Pin from confirmed PlaceData
+
+*Shared types:*
+- [ ] Add `osmType?: string`, `osmId?: string`, `locationType?: 'POINT' | 'AREA'` to `Pin` and `Place` interfaces
+
+*Mobile:*
+- [ ] Zustand `pinsStore`: add `polygonCache: Map<string, GeoJSON.FeatureCollection>` + `fetchPolygon(osmType, osmId)` action
+- [ ] `MapNative.tsx`: accept `selectedBoundary?: GeoJSON.FeatureCollection` prop; render as `GeoJSONSource` with `FillLayer` (green, 0.12 opacity) + `LineLayer` (green, 2px); render AREA pins as diamond marker (via SymbolLayer or CircleLayer with rotation)
+- [ ] `index.tsx`: on AREA pin select, call `fetchPolygon`, pass result to MapNative; use `fitBounds` to polygon bbox instead of `flyTo` a point
+
+---
+
+**UX flow:**
+```
+User sees map — AREA pins show as diamonds, POINT pins as circles
+
+User taps "Spiti Valley" diamond
+  → App checks Zustand polygon cache
+  → Cache miss: fetches from Nominatim (~300–500ms), stores in cache
+  → Cache hit: instant
+  → Polygon boundary renders as semi-transparent green fill over the valley
+  → Camera fits to the full valley extent
+  → Detail sheet opens as normal
+
+User taps elsewhere / closes detail
+  → Polygon disappears
+```
+
 **Phase 6 — Polish + App Store Submission**
 - [ ] Mobile: Profile screen (show plan status — Free / Pro)
 - [ ] Mobile: All animations (spring physics, staggered lists, pin drop Lottie)
@@ -1053,6 +1148,23 @@ Inspired by physical paper maps where travelers mark routes and notes by hand. W
 - MapLibre zoom level events to show/hide the pen tool
 - DB: `TripAnnotation` model (tripId, authorId, svgPath, boundingBoxLat/lng, createdAt)
 - Requires Shared Trips (Phase 8) to be built first — annotations belong to a Trip
+
+### Multi-Location Reel Support
+
+When a reel covers multiple places ("Top 5 Valleys in Himachal", "Best cafés in Pondicherry"), extract all locations and let the user pick which ones to save.
+
+**UX:**
+- After processing, show a scrollable list of place cards instead of a single card
+- Each card has an independent "+ Add" button that turns to "✓ Added" after tapping
+- Places that couldn't be geocoded show as a bullet list with a "Search on Google" link (opens Google search with the place name as query) — no manual Nominatim flow for these
+- "Done" button at the bottom navigates back; home screen highlights all newly added pins
+
+**Backend changes:**
+- LLM extraction prompt returns `{ "locations": [...] }` array (max 5, strict prompt to avoid hallucination)
+- Worker geocodes each location independently; failed ones are dropped silently
+- Job result returns `places: PlaceData[]` instead of `placeData: PlaceData | null`
+
+**Why post-launch:** Listicle reels are real but not the primary use case. The current fallback ("couldn't identify — search manually") handles them acceptably for MVP. Build this once you have usage data showing how often it fails.
 
 ### Premium Tier (Phase 9)
 When there are enough Pro features to justify a third tier. Likely candidates:

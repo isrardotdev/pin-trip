@@ -35,6 +35,10 @@ model Place {
   thumbnailUrl String?
   aiConfidence Float?
   category     Category
+  // OSM identity — used by mobile to fetch polygon boundary on demand
+  osmType      String?       // "relation" | "way" | "node"
+  osmId        BigInt?       // OSM entity ID (e.g. 1949380 for Spiti Valley)
+  locationType String?       // "POINT" | "AREA"
   createdAt    DateTime      @default(now())
   pins         Pin[]
   sources      PlaceSource[]
@@ -80,6 +84,11 @@ model Pin {
   aiConfidence       Float?
   isManuallyVerified Boolean    @default(false)
   rawTranscript      String?
+
+  // Denormalised from Place for fast client reads
+  osmType            String?
+  osmId              BigInt?
+  locationType       String?    // "POINT" | "AREA"
 
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt

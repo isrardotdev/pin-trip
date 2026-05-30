@@ -11,8 +11,8 @@ pinsRouter.use(authenticate)
 
 const createPinSchema = z.object({
   name: z.string().min(1),
-  city: z.string().optional(),
-  state: z.string().optional(),
+  city: z.string().nullish(),
+  state: z.string().nullish(),
   country: z.string().default('India'),
   lat: z.number(),
   lng: z.number(),
@@ -22,6 +22,10 @@ const createPinSchema = z.object({
   status: z.enum(['WISHLIST', 'PLANNING', 'VISITED']).default('WISHLIST'),
   category: z.enum(['NATURE', 'FOOD', 'ADVENTURE', 'CULTURE', 'STAY', 'OFFBEAT']).default('NATURE'),
   notes: z.string().optional(),
+  placeId: z.string().optional(),
+  osmType: z.string().optional(),
+  osmId: z.string().optional(),
+  locationType: z.enum(['POINT', 'AREA']).optional(),
 })
 
 const updatePinSchema = z.object({
@@ -48,8 +52,9 @@ pinsRouter.get('/', async (req: AuthRequest, res: Response) => {
       },
       orderBy: { createdAt: 'desc' },
     })
+    const pinsJson = pins.map(p => ({ ...p, osmId: p.osmId?.toString() ?? null }))
     logger.info({ userId: req.userId, count: pins.length }, 'Fetched pins')
-    res.json({ success: true, data: pins })
+    res.json({ success: true, data: pinsJson })
   } catch (err) {
     logger.error({ err, userId: req.userId }, 'Failed to fetch pins')
     res.status(500).json({ success: false, error: 'Failed to fetch pins' })
@@ -66,11 +71,18 @@ pinsRouter.post('/', async (req: AuthRequest, res: Response) => {
   }
 
   try {
+    const { osmId, ...rest } = parsed.data
     const pin = await prisma.pin.create({
-      data: { ...parsed.data, userId: req.userId! },
+      data: {
+        ...rest,
+        userId: req.userId!,
+        ...(osmId ? { osmId: BigInt(osmId) } : {}),
+      },
     })
-    logger.info({ userId: req.userId, pinId: pin.id, name: pin.name, source: pin.source }, 'Pin created')
-    res.status(201).json({ success: true, data: pin })
+    // Serialise BigInt for JSON response
+    const pinJson = { ...pin, osmId: pin.osmId?.toString() ?? null }
+    logger.info({ userId: req.userId, pinId: pin.id, name: pin.name, source: pin.source, locationType: pin.locationType }, 'Pin created')
+    res.status(201).json({ success: true, data: pinJson })
   } catch (err) {
     logger.error({ err, userId: req.userId, data: parsed.data }, 'Failed to create pin')
     res.status(500).json({ success: false, error: 'Failed to create pin' })

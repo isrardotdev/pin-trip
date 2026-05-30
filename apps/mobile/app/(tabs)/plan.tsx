@@ -330,6 +330,15 @@ export default function PlanScreen() {
           timestamp: new Date().toISOString(),
         }
         setMessages(prev => [...prev, aiMsg])
+      } else if (response.type === 'question') {
+        const aiMsg: ChatMessage = {
+          role: 'assistant',
+          content: response.content,
+          timestamp: new Date().toISOString(),
+          questionOptions: response.options,
+          readyToPlan: response.readyToPlan,
+        }
+        setMessages(prev => [...prev, aiMsg])
       } else {
         const aiMsg: ChatMessage = {
           role: 'assistant',
@@ -685,7 +694,7 @@ const styles = StyleSheet.create({
 
   itineraryBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginHorizontal: spacing[4], marginBottom: spacing[2],
+    marginHorizontal: spacing[4], marginTop: spacing[3], marginBottom: spacing[2],
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.borderLight,

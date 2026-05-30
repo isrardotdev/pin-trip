@@ -2,6 +2,8 @@ export type PinStatus = 'WISHLIST' | 'PLANNING' | 'VISITED'
 export type Category = 'NATURE' | 'FOOD' | 'ADVENTURE' | 'CULTURE' | 'STAY' | 'OFFBEAT'
 export type SourceType = 'INSTAGRAM' | 'YOUTUBE' | 'MANUAL' | 'DISCOVER' | 'PLANNER'
 
+export type LocationType = 'POINT' | 'AREA'
+
 export interface Place {
   id: string
   name: string
@@ -13,6 +15,9 @@ export interface Place {
   thumbnailUrl?: string
   aiConfidence?: number
   category: Category
+  osmType?: string       // "relation" | "way" | "node"
+  osmId?: string         // BigInt serialised as string
+  locationType?: LocationType
   createdAt: string
 }
 
@@ -33,6 +38,9 @@ export interface Pin {
   category: Category
   notes?: string
   aiConfidence?: number
+  osmType?: string       // "relation" | "way" | "node"
+  osmId?: string         // BigInt serialised as string
+  locationType?: LocationType
   createdAt: string
   updatedAt: string
 }
