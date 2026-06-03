@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { View, ActivityIndicator, Text } from 'react-native'
 import { useRouter } from 'expo-router'
 import { api } from '../src/lib/api'
@@ -30,12 +30,12 @@ export default function HandleShareScreen() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext()
   const user = useAuthStore((s) => s.user)
   const [error, setError] = useState('')
+  const handled = useRef(false)
 
+  // Process the intent as soon as it's available
   useEffect(() => {
-    if (!hasShareIntent) {
-      router.replace('/(tabs)')
-      return
-    }
+    if (!hasShareIntent || handled.current) return
+    handled.current = true
 
     if (!user) {
       router.replace('/(auth)/welcome')
@@ -67,6 +67,14 @@ export default function HandleShareScreen() {
 
     handleShare()
   }, [hasShareIntent])
+
+  // Fallback: if no intent arrives within 2s, go home
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!handled.current) router.replace('/(tabs)')
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
   if (error) {
     return (

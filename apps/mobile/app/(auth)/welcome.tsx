@@ -1,12 +1,20 @@
+import { useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { colors, fontSizes, spacing, radius } from '../../src/constants/theme'
 
 const { width, height } = Dimensions.get('window')
 
 export default function WelcomeScreen() {
   const router = useRouter()
+
+  useEffect(() => {
+    AsyncStorage.getItem('hasSeenOnboarding').then((val) => {
+      if (!val) router.replace('/(auth)/onboarding')
+    })
+  }, [])
 
   return (
     <View style={styles.container}>
