@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -10,7 +11,7 @@ datasource db {
 model User {
   id               String           @id @default(cuid())
   email            String           @unique
-  passwordHash     String
+  passwordHash     String?
   name             String?
   avatarUrl        String?
   pushToken        String?
@@ -22,6 +23,20 @@ model User {
   pins             Pin[]
   conversations    Conversation[]
   savedItineraries SavedItinerary[]
+  oauthAccounts    OAuthAccount[]
+}
+
+model OAuthAccount {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   String   // "apple" | "google"
+  providerId String   // sub from Apple/Google token
+  email      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, providerId])
+  @@index([userId])
 }
 
 model Place {

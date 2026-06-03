@@ -1,20 +1,43 @@
-import { useEffect } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { colors, fontSizes, spacing, radius } from '../../src/constants/theme'
+import { useAuthStore } from '../../src/stores/authStore'
 
 const { width, height } = Dimensions.get('window')
 
 export default function WelcomeScreen() {
   const router = useRouter()
+  const { loginWithApple, loginWithGoogle, isLoading } = useAuthStore()
+  const [appleAvailable, setAppleAvailable] = useState(false)
 
   useEffect(() => {
     AsyncStorage.getItem('hasSeenOnboarding').then((val) => {
       if (!val) router.replace('/(auth)/onboarding')
     })
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable)
+    }
   }, [])
+
+  const handleApple = async () => {
+    try {
+      await loginWithApple()
+    } catch (err: any) {
+      Alert.alert('Sign in failed', err?.response?.data?.error || err?.message || 'Something went wrong')
+    }
+  }
+
+  const handleGoogle = async () => {
+    try {
+      await loginWithGoogle()
+    } catch (err: any) {
+      Alert.alert('Sign in failed', err?.response?.data?.error || err?.message || 'Something went wrong')
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -48,12 +71,40 @@ export default function WelcomeScreen() {
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/(auth)/register')}>
-          <Text style={styles.primaryBtnText}>Get Started</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.secondaryBtnText}>I already have an account</Text>
-        </TouchableOpacity>
+        {isLoading ? (
+          <ActivityIndicator size="large" color={colors.accentGreen} style={{ marginVertical: spacing[6] }} />
+        ) : (
+          <>
+            {/* Sign in with Apple — iOS only, shown only if available */}
+            {appleAvailable && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={radius.full}
+                style={styles.appleBtn}
+                onPress={handleApple}
+              />
+            )}
+
+            {/* Sign in with Google */}
+            <TouchableOpacity style={styles.googleBtn} onPress={handleGoogle} activeOpacity={0.85}>
+              <Text style={styles.googleLogo}>G</Text>
+              <Text style={styles.googleBtnText}>Sign in with Google</Text>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Email fallback */}
+            <TouchableOpacity style={styles.emailBtn} onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
+              <Text style={styles.emailBtnText}>Continue with email</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   )
@@ -137,24 +188,56 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing[3],
   },
-  primaryBtn: {
-    backgroundColor: colors.accentGreen,
+  appleBtn: {
+    height: 52,
+    width: '100%',
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[3],
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.full,
     paddingVertical: spacing[4],
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderMedium,
   },
-  primaryBtnText: {
-    color: '#FFFFFF',
+  googleLogo: {
     fontSize: fontSizes.md,
     fontFamily: 'DMSans-Medium',
+    color: '#4285F4',
+    fontWeight: '700',
   },
-  secondaryBtn: {
+  googleBtnText: {
+    fontSize: fontSizes.base,
+    fontFamily: 'DMSans-Medium',
+    color: colors.textPrimary,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    marginVertical: spacing[1],
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderLight,
+  },
+  dividerText: {
+    fontSize: fontSizes.sm,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textTertiary,
+  },
+  emailBtn: {
     paddingVertical: spacing[3],
     alignItems: 'center',
   },
-  secondaryBtnText: {
-    color: colors.textSecondary,
+  emailBtnText: {
     fontSize: fontSizes.base,
     fontFamily: 'DMSans-Regular',
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
   },
 })
