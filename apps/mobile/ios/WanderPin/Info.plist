@@ -3,13 +3,13 @@
 <plist version="1.0">
   <dict>
     <key>AppGroupIdentifier</key>
-    <string>group.app.pintrip.mobile</string>
+    <string>group.app.wanderpin.mobile</string>
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>PinTrip</string>
+    <string>WanderPin</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -29,8 +29,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>pintrip</string>
-          <string>app.pintrip.mobile</string>
+          <string>wanderpin</string>
+          <string>app.wanderpin.mobile</string>
         </array>
       </dict>
     </array>

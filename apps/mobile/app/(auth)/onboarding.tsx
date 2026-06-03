@@ -84,7 +84,7 @@ function ReelScreen() {
       <View style={s.copy}>
         <Text style={[s.headline, { color: colors.textPrimary }]}>Save what{'\n'}you scroll past.</Text>
         <Text style={[s.body, { color: colors.textSecondary }]}>
-          Share any travel reel to PinTrip. The AI finds the location and drops a pin on your personal map — in seconds.
+          Share any travel reel to WanderPin. The AI finds the location and drops a pin on your personal map — in seconds.
         </Text>
       </View>
     </View>

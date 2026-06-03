@@ -37,7 +37,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Sign in to your PinTrip account</Text>
+        <Text style={styles.subtitle}>Sign in to your WanderPin account</Text>
 
         <View style={styles.form}>
           <View style={styles.field}>

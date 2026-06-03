@@ -4,7 +4,7 @@ import {
   Map, Camera, GeoJSONSource, Layer, UserLocation,
   type CameraRef, type GeoJSONSourceRef,
 } from '@maplibre/maplibre-react-native'
-import { Pin } from '@pintrip/shared'
+import { Pin } from '@wanderpin/shared'
 import { colors } from '../../constants/theme'
 
 export interface MapNativeRef {

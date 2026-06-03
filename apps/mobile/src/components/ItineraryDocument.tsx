@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { TripDocument, DayItem } from '@pintrip/shared'
+import { TripDocument, DayItem } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../constants/theme'
 
 const CATEGORY_ICONS: Record<string, string> = {

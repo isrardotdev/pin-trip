@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 import Constants from 'expo-constants'
-import { Pin, PinStatus, Category } from '@pintrip/shared'
+import { Pin, PinStatus, Category } from '@wanderpin/shared'
 import MapNative, { MapNativeRef } from '../../src/components/map/MapNative'
 import PinDetailInline from '../../src/components/map/PinDetailInline'
 

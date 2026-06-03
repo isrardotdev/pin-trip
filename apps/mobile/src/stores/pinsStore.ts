@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import axios from 'axios'
 import { api } from '../lib/api'
-import { Pin } from '@pintrip/shared'
+import { Pin } from '@wanderpin/shared'
 
 interface PinsState {
   pins: Pin[]
@@ -65,7 +65,7 @@ export const usePinsStore = create<PinsState>((set, get) => ({
           polygon_geojson: 1,
           polygon_threshold: 0.005,
         },
-        headers: { 'User-Agent': 'PinTrip/1.0' },
+        headers: { 'User-Agent': 'WanderPin/1.0' },
       })
       const results: any[] = res.data
       const geometry = results[0]?.geojson

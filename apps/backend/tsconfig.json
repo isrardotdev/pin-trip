@@ -9,7 +9,7 @@
     "outDir": "./dist",
     "resolveJsonModule": true,
     "paths": {
-      "@pintrip/shared": ["../../packages/shared/src/types.ts"]
+      "@wanderpin/shared": ["../../packages/shared/src/types.ts"]
     }
   },
   "include": ["src", "prisma"],

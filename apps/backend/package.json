@@ -9,7 +9,7 @@
     "prisma": "prisma"
   },
   "dependencies": {
-    "@pintrip/shared": "workspace:*",
+    "@wanderpin/shared": "workspace:*",
     "@prisma/client": "^5.14.0",
     "@google/generative-ai": "^0.15.0",
     "axios": "^1.7.0",

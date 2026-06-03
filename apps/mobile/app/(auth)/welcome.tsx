@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
         <View style={styles.logoMark}>
           <Text style={styles.logoText}>P</Text>
         </View>
-        <Text style={styles.appName}>PinTrip</Text>
+        <Text style={styles.appName}>WanderPin</Text>
         <Text style={styles.tagline}>Save what you scroll past.</Text>
         <Text style={styles.subTagline}>
           Share a travel reel. It lands on your personal map. Plan your trip with AI.

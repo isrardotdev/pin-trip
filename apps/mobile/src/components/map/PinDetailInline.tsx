@@ -4,7 +4,7 @@ import {
   TextInput, ScrollView, Linking, Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Pin, PinStatus } from '@pintrip/shared'
+import { Pin, PinStatus } from '@wanderpin/shared'
 import { usePinsStore } from '../../stores/pinsStore'
 import { colors, fontSizes, spacing, radius } from '../../constants/theme'
 

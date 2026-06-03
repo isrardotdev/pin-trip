@@ -4,7 +4,7 @@
   <dict>
     <key>com.apple.security.application-groups</key>
     <array>
-      <string>group.app.pintrip.mobile</string>
+      <string>group.app.wanderpin.mobile</string>
     </array>
   </dict>
 </plist>

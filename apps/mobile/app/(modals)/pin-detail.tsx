@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { usePinsStore } from '../../src/stores/pinsStore'
-import { Pin, PinStatus, Category } from '@pintrip/shared'
+import { Pin, PinStatus, Category } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 const STATUS_OPTIONS: PinStatus[] = ['WISHLIST', 'PLANNING', 'VISITED']

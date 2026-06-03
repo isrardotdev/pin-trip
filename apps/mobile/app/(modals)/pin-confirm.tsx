@@ -126,7 +126,7 @@ export default function PinConfirmModal() {
     try {
       const res = await axios.get<NominatimResult[]>('https://nominatim.openstreetmap.org/search', {
         params: { q: searchQuery, format: 'json', limit: 5, addressdetails: 1 },
-        headers: { 'User-Agent': 'PinTrip/1.0' },
+        headers: { 'User-Agent': 'WanderPin/1.0' },
       })
       setSearchResults(res.data)
     } catch {}

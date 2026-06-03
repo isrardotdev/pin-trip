@@ -1,5 +1,5 @@
 import { useAuthStore } from '../stores/authStore'
-import { PLANNER_FREE_LIMIT } from '@pintrip/shared'
+import { PLANNER_FREE_LIMIT } from '@wanderpin/shared'
 
 // Single source of truth for what the current user can access.
 // Phase 7: update isPro to also check RevenueCat entitlements here —

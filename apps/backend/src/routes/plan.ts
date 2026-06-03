@@ -6,7 +6,7 @@ import { config } from '../config'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { requirePlannerAccess } from '../middleware/requirePlannerAccess'
 import { logger } from '../logger'
-import type { TripDocument, ChatMessage } from '@pintrip/shared'
+import type { TripDocument, ChatMessage } from '@wanderpin/shared'
 
 export const planRouter = Router()
 planRouter.use(authenticate)
@@ -71,7 +71,7 @@ ${JSON.stringify(discoverPlaces.slice(0, 15), null, 2)}`
 ${JSON.stringify(tripDocument, null, 2)}`
     : 'No active trip document yet.'
 
-  return `You are PinTrip's travel planning assistant for Indian travelers.
+  return `You are WanderPin's travel planning assistant for Indian travelers.
 You help users build trip itineraries, primarily using their saved pins as anchor points.
 
 ${pinSection}

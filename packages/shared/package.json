@@ -1,5 +1,5 @@
 {
-  "name": "@pintrip/shared",
+  "name": "@wanderpin/shared",
   "version": "1.0.0",
   "main": "./src/types.ts",
   "types": "./src/types.ts",

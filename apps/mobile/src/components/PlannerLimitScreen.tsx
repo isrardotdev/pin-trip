@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, fontSizes, spacing, radius, shadows } from '../constants/theme'
-import { PLANNER_FREE_LIMIT } from '@pintrip/shared'
+import { PLANNER_FREE_LIMIT } from '@wanderpin/shared'
 
 interface Props {
   onUpgrade: () => void

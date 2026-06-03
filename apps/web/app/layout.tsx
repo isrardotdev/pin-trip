@@ -22,11 +22,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'PinTrip — Save what you scroll past',
+  title: 'WanderPin — Save what you scroll past',
   description:
     'Share a travel reel. It pins on your personal map. Chat with AI to plan your trip using only your saved places.',
   openGraph: {
-    title: 'PinTrip — Save what you scroll past',
+    title: 'WanderPin — Save what you scroll past',
     description: 'The travel app built for Indian wanderers.',
     type: 'website',
   },

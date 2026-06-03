@@ -10,9 +10,9 @@ import Social
 import UIKit
 
 class ShareViewController: UIViewController {
-  let hostAppGroupIdentifier: String = "group.app.pintrip.mobile"
-  let shareProtocol: String = "pintrip"
-  let sharedKey: String = "pintripShareKey"
+  let hostAppGroupIdentifier: String = "group.app.wanderpin.mobile"
+  let shareProtocol: String = "wanderpin"
+  let sharedKey: String = "wanderpinShareKey"
   let hideView: Bool = true
   var sharedMedia: [SharedMediaFile] = []
   var sharedWebUrl: [WebUrl] = []

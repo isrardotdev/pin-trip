@@ -9,7 +9,7 @@ import { api } from '../../src/lib/api'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { SavePinModal } from '../../src/components/SavePinModal'
 import { ItineraryDocument } from '../../src/components/ItineraryDocument'
-import { TripDocument, DayItem, PinStatus } from '@pintrip/shared'
+import { TripDocument, DayItem, PinStatus } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 

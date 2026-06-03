@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "PinTrip",
-    "slug": "pintrip",
+    "name": "WanderPin",
+    "slug": "wanderpin",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "pintrip",
+    "scheme": "wanderpin",
     "userInterfaceStyle": "light",
     "sdkVersion": "54.0.0",
     "splash": {
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.pintrip.mobile"
+      "bundleIdentifier": "app.wanderpin.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F5F0E8"
       },
-      "package": "app.pintrip.mobile"
+      "package": "app.wanderpin.mobile"
     },
     "plugins": [
       "expo-router",

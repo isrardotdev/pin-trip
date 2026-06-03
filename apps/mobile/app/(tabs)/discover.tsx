@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { api } from '../../src/lib/api'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { SavePinModal } from '../../src/components/SavePinModal'
-import { DiscoverPlace, PinStatus } from '@pintrip/shared'
+import { DiscoverPlace, PinStatus } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 const CATEGORY_ICONS: Record<string, string> = {

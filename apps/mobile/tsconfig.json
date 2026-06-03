@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@pintrip/shared": [
+      "@wanderpin/shared": [
         "../../packages/shared/src/types.ts"
       ],
       "@/*": [

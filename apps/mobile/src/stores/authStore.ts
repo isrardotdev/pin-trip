@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import * as SecureStore from 'expo-secure-store'
 import { api } from '../lib/api'
-import { User } from '@pintrip/shared'
+import { User } from '@wanderpin/shared'
 
 interface AuthState {
   user: User | null

@@ -27,7 +27,7 @@ export default function LandingPage() {
             <div className="w-16 h-16 rounded-full bg-accent-green flex items-center justify-center mr-4">
               <span className="font-display text-2xl text-bg-primary font-bold">P</span>
             </div>
-            <span className="font-display text-3xl text-bg-primary font-bold">PinTrip</span>
+            <span className="font-display text-3xl text-bg-primary font-bold">WanderPin</span>
           </motion.div>
 
           <motion.h1 variants={fadeUp} className="font-display text-5xl md:text-7xl text-bg-primary font-bold leading-tight mb-6">
@@ -103,7 +103,7 @@ export default function LandingPage() {
             variants={fadeUp}
             className="font-body text-lg text-text-secondary mb-16 max-w-xl mx-auto"
           >
-            Instagram is a discovery engine with no memory. PinTrip gives your travel discoveries a permanent home.
+            Instagram is a discovery engine with no memory. WanderPin gives your travel discoveries a permanent home.
           </motion.p>
 
           <motion.div
@@ -153,7 +153,7 @@ export default function LandingPage() {
                 step: '01',
                 icon: '📲',
                 title: 'Share the Reel',
-                desc: 'See a travel reel on Instagram. Tap Share → select PinTrip. That\'s it.',
+                desc: 'See a travel reel on Instagram. Tap Share → select WanderPin. That\'s it.',
               },
               {
                 step: '02',
@@ -165,7 +165,7 @@ export default function LandingPage() {
                 step: '03',
                 icon: '🗺️',
                 title: 'Chat to plan your trip',
-                desc: 'Tell PinTrip where you want to go. It builds a day-by-day itinerary using only your saved pins — not generic Google results.',
+                desc: 'Tell WanderPin where you want to go. It builds a day-by-day itinerary using only your saved pins — not generic Google results.',
               },
             ].map((item) => (
               <motion.div key={item.step} variants={fadeUp} className="bg-bg-primary rounded-2xl p-8 border border-border-light">
@@ -245,7 +245,7 @@ export default function LandingPage() {
                 Built for Indian travelers
               </h2>
               <p className="font-body text-lg text-text-secondary max-w-xl mx-auto">
-                From the crystal waters of Dawki to the sand dunes of Jaisalmer — PinTrip understands India's travel landscape.
+                From the crystal waters of Dawki to the sand dunes of Jaisalmer — WanderPin understands India's travel landscape.
               </p>
             </motion.div>
 
@@ -278,7 +278,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-full bg-accent-green flex items-center justify-center">
               <span className="font-display text-sm text-bg-primary font-bold">P</span>
             </div>
-            <span className="font-display text-xl text-bg-primary font-bold">PinTrip</span>
+            <span className="font-display text-xl text-bg-primary font-bold">WanderPin</span>
           </div>
           <p className="font-body text-sm text-text-tertiary">Made with ❤️ for Indian travelers</p>
           <div className="flex gap-6">

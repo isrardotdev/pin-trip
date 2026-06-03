@@ -9,11 +9,11 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('30d'),
   GROQ_API_KEY: z.string(),
   GEMINI_API_KEY: z.string(),
-  NOMINATIM_USER_AGENT: z.string().default('PinTrip/1.0'),
+  NOMINATIM_USER_AGENT: z.string().default('WanderPin/1.0'),
   MAPTILER_API_KEY: z.string().optional(),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   YTDLP_PATH: z.string().default('/usr/local/bin/yt-dlp'),
-  TEMP_DIR: z.string().default('/tmp/pintrip'),
+  TEMP_DIR: z.string().default('/tmp/wanderpin'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:8081,http://localhost:3000'),
 })
 

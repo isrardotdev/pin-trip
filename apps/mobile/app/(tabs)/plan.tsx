@@ -15,7 +15,7 @@ import { useEntitlements } from '../../src/hooks/useEntitlements'
 import { TripLibrary, SavedItinerarySummary } from '../../src/components/TripLibrary'
 import { PlannerLimitScreen } from '../../src/components/PlannerLimitScreen'
 import { SavePinModal } from '../../src/components/SavePinModal'
-import { ChatMessage, TripDocument, DayItem, PlannerResponse, PinStatus } from '@pintrip/shared'
+import { ChatMessage, TripDocument, DayItem, PlannerResponse, PinStatus } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 const SUGGESTIONS = [

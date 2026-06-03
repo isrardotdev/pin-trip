@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { PinStatus, Category } from '@pintrip/shared'
+import { PinStatus, Category } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../constants/theme'
 
 const STATUS_OPTIONS: { value: PinStatus; label: string; icon: string; color: string }[] = [

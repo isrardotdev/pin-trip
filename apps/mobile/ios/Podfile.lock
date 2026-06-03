@@ -2066,7 +2066,7 @@ DEPENDENCIES:
   - "ExpoAsset (from `../../../node_modules/.pnpm/expo-asset@12.0.13_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+me_acc7f5f32bf77f8ebf36e03c8ac09f2c/node_modules/expo-asset/ios`)"
   - "ExpoFileSystem (from `../../../node_modules/.pnpm/expo-file-system@19.0.22_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-nat_ff6f7e1c9e8f1ae612cfaacdc8de68d3/node_modules/expo-file-system/ios`)"
   - "ExpoFont (from `../../../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+met_1b16e7bc7c228189012c73176f9d200b/node_modules/expo-font/ios`)"
-  - "ExpoHead (from `../../../node_modules/.pnpm/expo-router@6.0.23_82db2b36f12664a444047087d70e238d/node_modules/expo-router/ios`)"
+  - "ExpoHead (from `../../../node_modules/.pnpm/expo-router@6.0.23_a26249b33ed6cd48b9558859cafb4f28/node_modules/expo-router/ios`)"
   - "ExpoKeepAwake (from `../../../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.34_react@19.1.0/node_modules/expo-keep-awake/ios`)"
   - "ExpoLinking (from `../../../node_modules/.pnpm/expo-linking@8.0.12_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+m_391cf17b1b9b39cc90b4e8d52c44c66c/node_modules/expo-linking/ios`)"
   - "ExpoModulesCore (from `../../../node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.0_@react-native+metro-con_ac76d47430b4ab29f9d83bb0fefea6a0/node_modules/expo-modules-core`)"
@@ -2170,7 +2170,7 @@ EXTERNAL SOURCES:
   ExpoFont:
     :path: "../../../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.34_react-native@0.81.5_@babel+core@7.29.0_@react-native+met_1b16e7bc7c228189012c73176f9d200b/node_modules/expo-font/ios"
   ExpoHead:
-    :path: "../../../node_modules/.pnpm/expo-router@6.0.23_82db2b36f12664a444047087d70e238d/node_modules/expo-router/ios"
+    :path: "../../../node_modules/.pnpm/expo-router@6.0.23_a26249b33ed6cd48b9558859cafb4f28/node_modules/expo-router/ios"
   ExpoKeepAwake:
     :path: "../../../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.34_react@19.1.0/node_modules/expo-keep-awake/ios"
   ExpoLinking:
@@ -2427,6 +2427,6 @@ SPEC CHECKSUMS:
   RNWorklets: 7f0ef37018543ab20ef983b964e80438225f5af2
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
 
-PODFILE CHECKSUM: 4b7901f7aebd0ac129bf214225289235be7c994f
+PODFILE CHECKSUM: 3c7b7163507deaff4da3f386e14c38320c5bb03d
 
 COCOAPODS: 1.16.2

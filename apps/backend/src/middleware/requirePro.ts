@@ -14,7 +14,7 @@ export async function requirePro(req: AuthRequest, res: Response, next: NextFunc
   if (!user || user.plan !== 'PRO') {
     res.status(403).json({
       success: false,
-      error: 'This feature requires PinTrip Pro',
+      error: 'This feature requires WanderPin Pro',
       code: 'SUBSCRIPTION_REQUIRED',
     })
     return
