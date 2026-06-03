@@ -15,6 +15,8 @@ const envSchema = z.object({
   YTDLP_PATH: z.string().default('/usr/local/bin/yt-dlp'),
   TEMP_DIR: z.string().default('/tmp/pintrip'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:8081,http://localhost:3000'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  APPLE_BUNDLE_ID: z.string().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)
@@ -41,4 +43,6 @@ export const config = {
   ytdlpPath: parsed.data.YTDLP_PATH,
   tempDir: parsed.data.TEMP_DIR,
   allowedOrigins: parsed.data.ALLOWED_ORIGINS.split(','),
+  googleClientId: parsed.data.GOOGLE_CLIENT_ID,
+  appleBundleId: parsed.data.APPLE_BUNDLE_ID,
 }
