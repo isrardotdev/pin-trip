@@ -75,7 +75,8 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       res.status(401).json({ success: false, error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' })
       return
     }
-
+    // TODO: change it after social login is implemented, because social login users will not have passwordHash
+    // @ts-ignore
     const valid = await bcrypt.compare(password, user.passwordHash)
     if (!valid) {
       logger.warn({ email, userId: user.id }, 'Login: invalid password')
