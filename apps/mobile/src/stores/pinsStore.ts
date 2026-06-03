@@ -63,7 +63,7 @@ export const usePinsStore = create<PinsState>((set, get) => ({
           osm_ids: `${prefix}${osmId}`,
           format: 'json',
           polygon_geojson: 1,
-          polygon_threshold: 0.005,
+          polygon_threshold: 0.001,
         },
         headers: { 'User-Agent': 'WanderPin/1.0' },
       })

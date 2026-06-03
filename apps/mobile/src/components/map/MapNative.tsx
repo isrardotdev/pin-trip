@@ -65,23 +65,23 @@ const MapNative = forwardRef<MapNativeRef, Props>(({ pins, selectedPinId, onPinP
 
   useImperativeHandle(ref, () => ({
     flyTo: (lng, lat, zoom = 12) => {
-      cameraRef.current?.flyTo({ center: [lng, lat], zoom, duration: 800 })
+      cameraRef.current?.flyTo({ center: [lng, lat], zoom, duration: 1100 })
     },
     fitBounds: (bounds, options = {}) => {
       const p = options.padding ?? 60
-      cameraRef.current?.fitBounds(bounds, { padding: { top: p, bottom: p, left: p, right: p }, duration: options.duration ?? 800 })
+      cameraRef.current?.fitBounds(bounds, { padding: { top: p, bottom: p, left: p, right: p }, duration: options.duration ?? 1100 })
     },
     fitAllPins: () => {
       if (pins.length === 0) return
       if (pins.length === 1) {
-        cameraRef.current?.flyTo({ center: [pins[0].lng, pins[0].lat], zoom: 10, duration: 800 })
+        cameraRef.current?.flyTo({ center: [pins[0].lng, pins[0].lat], zoom: 10, duration: 1000 })
         return
       }
       const lngs = pins.map(p => p.lng)
       const lats = pins.map(p => p.lat)
       cameraRef.current?.fitBounds(
         [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
-        { padding: { top: 60, bottom: 60, left: 60, right: 60 }, duration: 800 },
+        { padding: { top: 60, bottom: 60, left: 60, right: 60 }, duration: 1200 },
       )
     },
   }))
@@ -101,7 +101,7 @@ const MapNative = forwardRef<MapNativeRef, Props>(({ pins, selectedPinId, onPinP
         cameraRef.current?.flyTo({
           center: [coords[0], coords[1]],
           zoom: zoom + 0.5, // slight overshoot so pins visually separate
-          duration: 600,
+          duration: 800,
         })
         return
       }
@@ -178,12 +178,11 @@ const MapNative = forwardRef<MapNativeRef, Props>(({ pins, selectedPinId, onPinP
           type="circle"
           filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'locationType'], 'POINT']]}
           paint={{
-            'circle-color': ['get', 'pinColor'],
+            'circle-color': ['to-color', ['get', 'pinColor']],
             'circle-radius': ['case', ['==', ['get', 'selected'], true], 13, 9],
             'circle-stroke-width': ['case', ['==', ['get', 'selected'], true], 3, 2.5],
-            'circle-stroke-color': ['get', 'strokeColor'],
+            'circle-stroke-color': ['to-color', ['get', 'strokeColor']],
             'circle-opacity': 1,
-            'circle-pitch-alignment': 'map',
           }}
         />
 
@@ -193,15 +192,14 @@ const MapNative = forwardRef<MapNativeRef, Props>(({ pins, selectedPinId, onPinP
           type="symbol"
           filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'locationType'], 'AREA']]}
           layout={{
-            'icon-image': 'diamond',   // fallback: text-based diamond if icon unavailable
             'text-field': '◆',
             'text-size': ['case', ['==', ['get', 'selected'], true], 22, 16],
             'text-allow-overlap': true,
             'text-ignore-placement': true,
           }}
           paint={{
-            'text-color': ['get', 'pinColor'],
-            'text-halo-color': ['get', 'strokeColor'],
+            'text-color': ['to-color', ['get', 'pinColor']],
+            'text-halo-color': ['to-color', ['get', 'strokeColor']],
             'text-halo-width': 1.5,
           }}
         />

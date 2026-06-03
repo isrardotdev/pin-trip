@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
-import Constants from 'expo-constants'
 import { Pin, PinStatus, Category } from '@wanderpin/shared'
 import MapNative, { MapNativeRef } from '../../src/components/map/MapNative'
 import PinDetailInline from '../../src/components/map/PinDetailInline'
@@ -22,7 +21,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const MAP_HEIGHT_FULL = SCREEN_HEIGHT * 0.52
 const MAP_HEIGHT_COLLAPSED = 120
 const COLLAPSE_SCROLL_DISTANCE = 140
-const FLY_TO_DEBOUNCE_MS = 350
+const FLY_TO_DEBOUNCE_MS = 200
 
 const STATUS_FILTERS: { label: string; value: PinStatus | 'ALL' }[] = [
   { label: 'All', value: 'ALL' },
@@ -182,7 +181,7 @@ export default function HomeScreen() {
             const lats = coords.map((c: [number, number]) => c[1])
             mapRef.current?.fitBounds(
               [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
-              { padding: 40, duration: 800 },
+              { padding: 40, duration: 1100 },
             )
           }
         } else {
@@ -224,7 +223,7 @@ export default function HomeScreen() {
           pins={filteredPins}
           selectedPinId={selectedPinId}
           onPinPress={selectPin}
-          mapStyle={Constants.expoConfig?.extra?.maptilerStyleUrl ?? process.env.EXPO_PUBLIC_MAPTILER_STYLE_URL}
+          mapStyle={process.env.EXPO_PUBLIC_MAPTILER_STYLE_URL}
           selectedBoundary={selectedBoundary}
         />
       </Animated.View>
