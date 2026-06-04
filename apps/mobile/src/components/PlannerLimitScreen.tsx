@@ -13,6 +13,10 @@ interface Props {
 export function PlannerLimitScreen({ onUpgrade, onDismiss }: Props) {
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.closeBtn} onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Ionicons name="close" size={18} color={colors.textTertiary} />
+      </TouchableOpacity>
+
       <View style={styles.iconWrap}>
         <Ionicons name="chatbubble-ellipses" size={28} color={colors.accentGreen} />
       </View>
@@ -38,10 +42,6 @@ export function PlannerLimitScreen({ onUpgrade, onDismiss }: Props) {
       <TouchableOpacity style={styles.upgradeBtn} onPress={onUpgrade} activeOpacity={0.85}>
         <Text style={styles.upgradeBtnText}>Upgrade to Pro — ₹199/mo</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={styles.dismissText}>Maybe later</Text>
-      </TouchableOpacity>
     </View>
   )
 }
@@ -57,6 +57,12 @@ const styles = StyleSheet.create({
     marginVertical: spacing[4],
     alignItems: 'center',
     ...shadows.sheet,
+  },
+  closeBtn: {
+    position: 'absolute', top: spacing[4], right: spacing[4],
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.bgSecondary,
+    alignItems: 'center', justifyContent: 'center',
   },
   iconWrap: {
     width: 56, height: 56,
@@ -110,10 +116,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: fontSizes.base,
     fontFamily: 'DMSans-Medium',
-  },
-  dismissText: {
-    fontSize: fontSizes.sm,
-    fontFamily: 'DMSans-Regular',
-    color: colors.textTertiary,
   },
 })

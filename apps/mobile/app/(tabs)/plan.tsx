@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, KeyboardAvoidingView, Platform,
   ActivityIndicator, Modal, Alert, Animated, ScrollView,
 } from 'react-native'
-import ReAnimated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
@@ -15,7 +15,7 @@ import { useEntitlements } from '../../src/hooks/useEntitlements'
 import { TripLibrary, SavedItinerarySummary } from '../../src/components/TripLibrary'
 import { PlannerLimitScreen } from '../../src/components/PlannerLimitScreen'
 import { SavePinModal } from '../../src/components/SavePinModal'
-import { ChatMessage, TripDocument, DayItem, PlannerResponse, PinStatus } from '@wanderpin/shared'
+import { ChatMessage, TripDocument, DayItem, PlannerResponse, PinStatus, PLANNER_FREE_LIMIT } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 const SUGGESTIONS = [
@@ -117,15 +117,16 @@ function MessageBubble({ message, onSuggestion }: {
 
 // ─── Question bubble (preference gathering) ───────────────────────────────────
 
-function QuestionBubble({ message, selectedOption, planNowSent, isLastMessage, onOptionSelect, onPlanNow }: {
+function QuestionBubble({ message, selectedOption, planNowSent, isLastMessage, disabled, onOptionSelect, onPlanNow }: {
   message: ChatMessage
   selectedOption?: string
   planNowSent: boolean
   isLastMessage: boolean
+  disabled?: boolean
   onOptionSelect: (opt: string) => void
   onPlanNow: () => void
 }) {
-  const chipsLocked = message.readyToPlan ? planNowSent : !!selectedOption
+  const chipsLocked = disabled || (message.readyToPlan ? planNowSent : !!selectedOption)
   const showOptions = isLastMessage  // hide options on past messages — user already replied
 
   return (
@@ -249,6 +250,9 @@ export default function PlanScreen() {
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({})
   const [planNowSent, setPlanNowSent] = useState<Set<number>>(new Set())
 
+  // Paywall visibility — shown on mount/focus when limit reached, dismissible
+  const [paywallVisible, setPaywallVisible] = useState(!canSendPlannerMessage)
+
   // Save-to-map confirmation
   const [addToMapTarget, setAddToMapTarget] = useState<DayItem | null>(null)
 
@@ -269,6 +273,16 @@ export default function PlanScreen() {
       setSavedItineraries(savedRes.data.data ?? [])
     }).catch(() => {}).finally(() => setIsLoadingConv(false))
   }, [])
+
+  // Show paywall immediately when limit is hit mid-session
+  useEffect(() => {
+    if (!canSendPlannerMessage) setPaywallVisible(true)
+  }, [canSendPlannerMessage])
+
+  // Re-show paywall every time the tab is re-focused if limit is reached
+  useFocusEffect(useCallback(() => {
+    if (!canSendPlannerMessage) setPaywallVisible(true)
+  }, [canSendPlannerMessage]))
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100)
@@ -379,13 +393,23 @@ export default function PlanScreen() {
     }
   }
 
+  const handleNewTrip = async () => {
+    setMessages([])
+    setTripDocument(null)
+    setCurrentDestination(null)
+    setSelectedOptions({})
+    setPlanNowSent(new Set())
+    setActiveView('chat')
+    try { await api.post('/plan/reset') } catch {}
+  }
+
   const handleLoadTrip = async (id: string) => {
     try {
       const res = await api.post(`/plan/load/${id}`)
       const conv = res.data.data
       setTripDocument(conv.tripDocument)
       setCurrentDestination(conv.destination)
-      setMessages([])
+      setMessages(conv.messages ?? [])
       setSelectedOptions({})
       setPlanNowSent(new Set())
       setActiveView('chat')
@@ -490,11 +514,6 @@ export default function PlanScreen() {
           )}
         </View>
         <View style={styles.headerRight}>
-          {tripDocument && (
-            <TouchableOpacity style={styles.headerIconBtn} onPress={handleSaveTrip}>
-              <Ionicons name="bookmark-outline" size={20} color={colors.accentGreen} />
-            </TouchableOpacity>
-          )}
           {hasSavedTrips && (
             <TouchableOpacity
               style={styles.tabToggle}
@@ -513,24 +532,30 @@ export default function PlanScreen() {
         </View>
       </View>
 
-      {/* ── Itinerary banner (shared element origin) ── */}
+      {/* ── Itinerary banner ── */}
       {activeView === 'chat' && tripDocument && (
-        <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/(modals)/itinerary')}>
-          <ReAnimated.View style={styles.itineraryBanner}>
-            <View style={styles.itineraryBannerLeft}>
-              <Ionicons name="map" size={16} color={colors.accentGreen} />
-              <View style={styles.itineraryBannerText}>
-                <Text style={styles.itineraryBannerTitle} numberOfLines={1}>
-                  {currentDestination ?? tripDocument.destination}
-                </Text>
-                <Text style={styles.itineraryBannerSub}>
-                  {tripDocument.days.length} days · tap to view itinerary
-                </Text>
-              </View>
+        <View style={styles.itineraryBanner}>
+          <TouchableOpacity
+            style={styles.itineraryBannerMain}
+            activeOpacity={0.85}
+            onPress={() => router.push('/(modals)/itinerary')}
+          >
+            <Ionicons name="map" size={16} color={colors.accentGreen} />
+            <View style={styles.itineraryBannerText}>
+              <Text style={styles.itineraryBannerTitle} numberOfLines={1}>
+                {currentDestination ?? tripDocument.destination}
+              </Text>
+              <Text style={styles.itineraryBannerSub}>
+                {tripDocument.days.length} days · tap to view
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-          </ReAnimated.View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          <View style={styles.bannerDivider} />
+          <TouchableOpacity style={styles.bannerSaveBtn} onPress={handleSaveTrip} activeOpacity={0.75}>
+            <Ionicons name="bookmark-outline" size={18} color={colors.accentGreen} />
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* ── Library view ── */}
@@ -539,7 +564,7 @@ export default function PlanScreen() {
           itineraries={savedItineraries}
           onLoad={handleLoadTrip}
           onDelete={handleDeleteTrip}
-          onNewTrip={() => setActiveView('chat')}
+          onNewTrip={handleNewTrip}
         />
       ) : (
         <>
@@ -557,6 +582,7 @@ export default function PlanScreen() {
                     selectedOption={selectedOptions[index]}
                     planNowSent={planNowSent.has(index)}
                     isLastMessage={isLastMessage}
+                    disabled={!canSendPlannerMessage}
                     onOptionSelect={(opt) => handleOptionSelect(index, opt, !!item.readyToPlan)}
                     onPlanNow={() => handlePlanNow(index)}
                   />
@@ -565,7 +591,7 @@ export default function PlanScreen() {
               return (
                 <MessageBubble
                   message={item}
-                  onSuggestion={isLastMessage && item.role === 'assistant' ? sendMessage : undefined}
+                  onSuggestion={isLastMessage && item.role === 'assistant' && canSendPlannerMessage ? sendMessage : undefined}
                 />
               )
             }}
@@ -587,8 +613,9 @@ export default function PlanScreen() {
                     {SUGGESTIONS.map((s) => (
                       <TouchableOpacity
                         key={s}
-                        style={styles.suggestionChip}
+                        style={[styles.suggestionChip, !canSendPlannerMessage && styles.suggestionChipDisabled]}
                         onPress={() => sendMessage(s)}
+                        disabled={!canSendPlannerMessage}
                       >
                         <Text style={styles.suggestionText}>{s}</Text>
                       </TouchableOpacity>
@@ -599,16 +626,24 @@ export default function PlanScreen() {
             }
           />
 
-          {/* ── Paywall (inline) ── */}
-          {!canSendPlannerMessage && (
-            <PlannerLimitScreen
-              onUpgrade={() => { /* Phase 7: open RevenueCat */ }}
-              onDismiss={() => {}}
-            />
-          )}
-
-          {/* ── Input bar ── */}
-          {canSendPlannerMessage && (
+          {/* ── Paywall / input ── */}
+          {!canSendPlannerMessage ? (
+            paywallVisible ? (
+              <PlannerLimitScreen
+                onUpgrade={() => { /* Phase 7: open RevenueCat */ }}
+                onDismiss={() => setPaywallVisible(false)}
+              />
+            ) : (
+              <TouchableOpacity
+                style={[styles.limitBanner, { paddingBottom: spacing[3] + insets.bottom / 2 }]}
+                onPress={() => setPaywallVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.limitBannerText}>You've used your {PLANNER_FREE_LIMIT} free sessions · tap to upgrade</Text>
+              </TouchableOpacity>
+            )
+          ) : (
             <View style={[styles.inputBar, { paddingBottom: spacing[3] + insets.bottom / 2 }]}>
               <TextInput
                 style={styles.input}
@@ -678,11 +713,6 @@ const styles = StyleSheet.create({
   },
   messagesBadgeText: { fontSize: fontSizes.xs, fontFamily: 'DMSans-Medium', color: colors.accentAmber },
 
-  headerIconBtn: {
-    width: 36, height: 36, borderRadius: radius.sm,
-    backgroundColor: colors.bgSecondary,
-    alignItems: 'center', justifyContent: 'center',
-  },
   tabToggle: {
     flexDirection: 'row', alignItems: 'center', gap: spacing[1],
     backgroundColor: colors.bgSecondary, borderRadius: radius.full,
@@ -693,16 +723,24 @@ const styles = StyleSheet.create({
   messageList: { padding: spacing[4], flexGrow: 1 },
 
   itineraryBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center',
     marginHorizontal: spacing[4], marginTop: spacing[3], marginBottom: spacing[2],
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.borderLight,
     borderLeftWidth: 3, borderLeftColor: colors.accentGreen,
-    paddingVertical: spacing[3], paddingHorizontal: spacing[4],
     ...shadows.card,
+    overflow: 'hidden',
   },
-  itineraryBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], flex: 1 },
+  itineraryBannerMain: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing[3],
+    paddingVertical: spacing[3], paddingHorizontal: spacing[4],
+  },
+  bannerDivider: { width: 1, height: 32, backgroundColor: colors.borderLight },
+  bannerSaveBtn: {
+    paddingVertical: spacing[3], paddingHorizontal: spacing[4],
+    alignItems: 'center', justifyContent: 'center',
+  },
   itineraryBannerText: { flex: 1 },
   itineraryBannerTitle: {
     fontSize: fontSizes.sm, fontFamily: 'PlayfairDisplay-Bold', color: colors.textPrimary,
@@ -830,6 +868,7 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular', color: colors.textPrimary,
   },
+  suggestionChipDisabled: { opacity: 0.4 },
 
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: spacing[2],
@@ -850,6 +889,18 @@ const styles = StyleSheet.create({
     ...shadows.pin,
   },
   sendBtnDisabled: { opacity: 0.45 },
+
+  limitBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[4], paddingTop: spacing[3],
+    borderTopWidth: 1, borderTopColor: colors.borderLight,
+    backgroundColor: colors.bgPrimary,
+  },
+  limitBannerText: {
+    fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular',
+    color: colors.textSecondary, textAlign: 'center',
+  },
 
   // Conflict modal
   conflictOverlay: {

@@ -26,16 +26,15 @@ const saveTripSchema = z.object({
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function extractDestination(text: string): string {
-  // Simple heuristic — take the longest proper noun sequence
-  // Good enough for conflict detection without an LLM call
-  const patterns = [
-    /(?:trip to|visit|plan|going to|travel to)\s+([A-Z][a-zA-Z\s,]+?)(?:\s+trip|\s+travel|\s*$|\s*[.,!?])/i,
-    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/,
-  ]
-  for (const p of patterns) {
-    const m = text.match(p)
-    if (m?.[1] && m[1].trim().length > 2) return m[1].trim()
-  }
+  // Only match when a clear intent keyword is present — avoids false positives
+  // on follow-up questions like "What are the alternatives in this area?"
+  // TODO (post-MVP): Replace regex heuristic with a lightweight LLM call (e.g. Groq llama)
+  // to reliably detect destination-change intent across all natural language patterns.
+  // Current approach misses edge cases like "Let's switch to Goa" or "What about Ladakh instead?"
+  const m = text.match(
+    /(?:trip to|visit|plan(?: a trip)?|going to|travel to|explore|itinerary for)\s+([A-Za-z][a-zA-Z\s,]+?)(?:\s+trip|\s+travel|\s*$|\s*[.,!?])/i,
+  )
+  if (m?.[2] && m[2].trim().length > 2) return m[2].trim()
   return ''
 }
 
@@ -461,23 +460,25 @@ planRouter.post('/load/:id', async (req: AuthRequest, res: Response) => {
 
     const doc = itinerary.document as unknown as TripDocument
 
+    const savedMessages = itinerary.messages as object[]
+
     await prisma.conversation.upsert({
       where: { userId: req.userId },
       create: {
         userId: req.userId!,
         tripDocument: itinerary.document ?? undefined,
         destination: itinerary.destination,
-        messages: [],
+        messages: { set: savedMessages },
       },
       update: {
         tripDocument: itinerary.document ?? undefined,
         destination: itinerary.destination,
-        messages: [],
+        messages: { set: savedMessages },
       },
     })
 
     logger.info({ userId: req.userId, itineraryId: id, destination: itinerary.destination }, 'Saved itinerary loaded into active conversation')
-    res.json({ success: true, data: { tripDocument: doc, destination: itinerary.destination, messages: [] } })
+    res.json({ success: true, data: { tripDocument: doc, destination: itinerary.destination, messages: savedMessages } })
   } catch (err) {
     logger.error({ err, userId: req.userId, itineraryId: id }, 'Failed to load saved itinerary')
     res.status(500).json({ success: false, error: 'Failed to load itinerary' })

@@ -104,7 +104,7 @@ pinsRouter.get('/:id', async (req: AuthRequest, res: Response) => {
       return
     }
 
-    res.json({ success: true, data: pin })
+    res.json({ success: true, data: { ...pin, osmId: pin.osmId?.toString() ?? null } })
   } catch (err) {
     logger.error({ err, userId: req.userId, pinId: id }, 'Failed to fetch pin')
     res.status(500).json({ success: false, error: 'Failed to fetch pin' })
@@ -139,7 +139,7 @@ pinsRouter.patch('/:id', async (req: AuthRequest, res: Response) => {
       },
     })
     logger.info({ userId: req.userId, pinId: id, changes: parsed.data }, 'Pin updated')
-    res.json({ success: true, data: pin })
+    res.json({ success: true, data: { ...pin, osmId: pin.osmId?.toString() ?? null } })
   } catch (err) {
     logger.error({ err, userId: req.userId, pinId: id }, 'Failed to update pin')
     res.status(500).json({ success: false, error: 'Failed to update pin' })

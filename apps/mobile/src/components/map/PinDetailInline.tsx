@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   TextInput, ScrollView, Linking, Alert,
@@ -34,11 +34,33 @@ interface Props {
 export default function PinDetailInline({ pin, index, total, onClose, onPrev, onNext, onBeforeDelete, insetBottom }: Props) {
   const { updatePin, deletePin } = usePinsStore()
   const [notes, setNotes] = useState(pin.notes || '')
+  const notesRef = useRef(notes)
+  const pinIdRef = useRef(pin.id)
+
+  const handleNotesChange = (text: string) => {
+    setNotes(text)
+    notesRef.current = text
+  }
+
+  // Flush any unsaved notes before switching to another pin
+  const flushNotes = () => {
+    if (notesRef.current !== (pin.notes || '')) {
+      updatePin(pinIdRef.current, { notes: notesRef.current })
+    }
+  }
+
+  // Reset notes state and refs when the displayed pin changes
+  useEffect(() => {
+    setNotes(pin.notes || '')
+    notesRef.current = pin.notes || ''
+    pinIdRef.current = pin.id
+  }, [pin.id])
 
   const handleStatusChange = (status: PinStatus) => updatePin(pin.id, { status })
 
+  // onBlur is a secondary save — primary save happens via flushNotes on navigate/close
   const handleNotesBlur = () => {
-    if (notes !== pin.notes) updatePin(pin.id, { notes })
+    if (notesRef.current !== (pin.notes || '')) updatePin(pin.id, { notes: notesRef.current })
   }
 
   const handleDelete = () => {
@@ -63,7 +85,7 @@ export default function PinDetailInline({ pin, index, total, onClose, onPrev, on
         <View style={styles.navGroup}>
           <TouchableOpacity
             style={[styles.navBtn, index === 0 && styles.navBtnDisabled]}
-            onPress={onPrev}
+            onPress={() => { flushNotes(); onPrev() }}
             disabled={index === 0}
             activeOpacity={0.7}
           >
@@ -72,7 +94,7 @@ export default function PinDetailInline({ pin, index, total, onClose, onPrev, on
           <Text style={styles.navCount}>{index + 1} / {total}</Text>
           <TouchableOpacity
             style={[styles.navBtn, index === total - 1 && styles.navBtnDisabled]}
-            onPress={onNext}
+            onPress={() => { flushNotes(); onNext() }}
             disabled={index === total - 1}
             activeOpacity={0.7}
           >
@@ -80,7 +102,7 @@ export default function PinDetailInline({ pin, index, total, onClose, onPrev, on
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.closeBtn} onPress={() => { flushNotes(); onClose() }} activeOpacity={0.7}>
           <Ionicons name="close" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -140,7 +162,7 @@ export default function PinDetailInline({ pin, index, total, onClose, onPrev, on
         <TextInput
           style={styles.notes}
           value={notes}
-          onChangeText={setNotes}
+          onChangeText={handleNotesChange}
           onBlur={handleNotesBlur}
           placeholder="Add a personal note..."
           placeholderTextColor={colors.textTertiary}
