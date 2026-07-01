@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { colors, fontSizes, spacing, radius } from '../../src/constants/theme'
 
-const { width, height } = Dimensions.get('window')
+const { width } = Dimensions.get('window')
 
 export default function WelcomeScreen() {
   const router = useRouter()

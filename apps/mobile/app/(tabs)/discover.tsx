@@ -33,8 +33,6 @@ function HeroCard({ place, onSave, onPress, saved }: {
           <Text style={styles.heroPlaceholderIcon}>{CATEGORY_ICONS[place.category]}</Text>
         </View>
       )}
-      <View style={styles.heroGradient} />
-
       <View style={styles.heroTop}>
         <View style={styles.trendingBadge}>
           <Ionicons name="flame" size={12} color={colors.accentAmber} />
@@ -173,6 +171,7 @@ export default function DiscoverScreen() {
   const insets = useSafeAreaInsets()
   const [places, setPlaces] = useState<DiscoverPlace[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [selectedPlace, setSelectedPlace] = useState<DiscoverPlace | null>(null)
   const [saveTarget, setSaveTarget] = useState<DiscoverPlace | null>(null)
@@ -181,7 +180,7 @@ export default function DiscoverScreen() {
   useEffect(() => {
     api.get('/discover')
       .then((res) => setPlaces(res.data.data ?? []))
-      .catch(() => {})
+      .catch(() => setHasError(true))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -215,6 +214,19 @@ export default function DiscoverScreen() {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator color={colors.accentGreen} />
+      </View>
+    )
+  }
+
+  if (hasError || places.length === 0) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: spacing[6] }]}>
+        <Text style={{ fontSize: fontSizes.xl, fontFamily: 'PlayfairDisplay-Italic', color: colors.textSecondary, textAlign: 'center' }}>
+          Couldn't load places right now.
+        </Text>
+        <Text style={{ fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular', color: colors.textTertiary, textAlign: 'center', marginTop: spacing[2] }}>
+          Check your connection and try again.
+        </Text>
       </View>
     )
   }
@@ -319,10 +331,6 @@ const styles = StyleSheet.create({
   },
   heroPlaceholder: { backgroundColor: colors.bgSecondary, alignItems: 'center', justifyContent: 'center' },
   heroPlaceholderIcon: { fontSize: 72 },
-  heroGradient: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-  },
   heroTop: {
     position: 'absolute', top: spacing[4], left: spacing[4], right: spacing[4],
     flexDirection: 'row',

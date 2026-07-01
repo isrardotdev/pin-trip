@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
 import { useAuthStore } from '../../src/stores/authStore'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
@@ -69,16 +69,6 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <View style={styles.settingsCard}>
-          <View style={[styles.settingsRow, styles.settingsRowBorder]}>
-            <Text style={styles.settingsLabel}>Notifications</Text>
-            <Switch
-              value={false}
-              onValueChange={() => {}}
-              trackColor={{ false: colors.borderLight, true: colors.accentGreenLight }}
-              thumbColor={colors.surface}
-            />
-          </View>
-
           <TouchableOpacity style={[styles.settingsRow, styles.settingsRowBorder]} onPress={handleClearPins}>
             <Text style={[styles.settingsLabel, { color: colors.accentRed }]}>Clear All Pins</Text>
           </TouchableOpacity>

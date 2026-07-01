@@ -84,7 +84,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(modals)/pin-detail" options={{ presentation: 'modal' }} />
           <Stack.Screen name="(modals)/pin-confirm" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="(modals)/manual-add" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="(modals)/itinerary"
             options={{

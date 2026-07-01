@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, Linking,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuthStore } from '../../src/stores/authStore'
 import { colors, fontSizes, spacing, radius } from '../../src/constants/theme'
+
+const PRIVACY_POLICY_URL = 'https://wanderpin.app/privacy'
 
 export default function RegisterScreen() {
   const router = useRouter()
@@ -100,6 +102,14 @@ export default function RegisterScreen() {
             <Text style={styles.switchLink}>Sign In</Text>
           </Text>
         </TouchableOpacity>
+
+        <Text style={styles.legalText}>
+          By creating an account you agree to our{' '}
+          <Text style={styles.legalLink} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+            Privacy Policy
+          </Text>
+          .{'\n'}AI planning features send your saved places to Google Gemini to generate itineraries.
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -166,5 +176,18 @@ const styles = StyleSheet.create({
   switchLink: {
     color: colors.accentGreen,
     fontFamily: 'DMSans-Medium',
+  },
+  legalText: {
+    fontSize: fontSizes.xs,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textTertiary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: spacing[6],
+    paddingHorizontal: spacing[4],
+  },
+  legalLink: {
+    color: colors.accentGreen,
+    fontFamily: 'DMSans-Regular',
   },
 })

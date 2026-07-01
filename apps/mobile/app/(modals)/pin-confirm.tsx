@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  TextInput, FlatList, Alert, ActivityIndicator,
+  Alert, ActivityIndicator,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import axios from 'axios'
 import { api } from '../../src/lib/api'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
@@ -33,14 +32,6 @@ interface PlaceData {
   locationType?: string | null
 }
 
-interface NominatimResult {
-  place_id: number
-  display_name: string
-  lat: string
-  lon: string
-  address: { city?: string; town?: string; village?: string; state?: string; country?: string }
-}
-
 export default function PinConfirmModal() {
   const { jobId, url } = useLocalSearchParams<{ jobId: string; url: string }>()
   const router = useRouter()
@@ -49,11 +40,6 @@ export default function PinConfirmModal() {
   const [state, setState] = useState<State>('processing')
   const [placeData, setPlaceData] = useState<PlaceData | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-
-  // Fallback search state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
 
   // Poll job until done
   useEffect(() => {
@@ -120,47 +106,6 @@ export default function PinConfirmModal() {
 
   const handleSkip = () => router.replace('/(tabs)')
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
-    setIsSearching(true)
-    try {
-      const res = await axios.get<NominatimResult[]>('https://nominatim.openstreetmap.org/search', {
-        params: { q: searchQuery, format: 'json', limit: 5, addressdetails: 1 },
-        headers: { 'User-Agent': 'WanderPin/1.0' },
-      })
-      setSearchResults(res.data)
-    } catch {}
-    finally { setIsSearching(false) }
-  }
-
-  const handleSelectResult = async (result: NominatimResult) => {
-    setIsSaving(true)
-    try {
-      const addr = result.address
-      const city = addr.city || addr.town || addr.village || ''
-      const nameParts = result.display_name.split(', ')
-      const res = await api.post('/pins', {
-        name: nameParts[0] || searchQuery,
-        city,
-        state: addr.state,
-        country: addr.country || 'India',
-        lat: parseFloat(result.lat),
-        lng: parseFloat(result.lon),
-        source: 'INSTAGRAM',
-        sourceUrl: url,
-        status: 'WISHLIST',
-        category: 'NATURE',
-      })
-      await fetchPins()
-      const newPinId = res.data.data?.id
-      router.replace(newPinId ? `/(tabs)?newPinId=${newPinId}` : '/(tabs)')
-    } catch {
-      Alert.alert('Error', 'Failed to save pin')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
   // ── Processing ──────────────────────────────────────────────────────────────
   if (state === 'processing') {
     return (
@@ -223,43 +168,14 @@ export default function PinConfirmModal() {
 
   // ── Fallback ────────────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
+    <View style={styles.centered}>
       <View style={styles.handle} />
-      <Text style={styles.fallbackTitle}>Couldn't identify the location</Text>
-      <Text style={styles.fallbackSubtitle}>Search for the place manually:</Text>
-
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.input}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="e.g. Dawki River, Meghalaya"
-          placeholderTextColor={colors.textTertiary}
-          onSubmitEditing={handleSearch}
-          autoFocus
-        />
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>{isSearching ? '...' : 'Go'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={searchResults}
-        keyExtractor={(item) => item.place_id.toString()}
-        renderItem={({ item }) => {
-          const parts = item.display_name.split(', ')
-          return (
-            <TouchableOpacity style={styles.resultRow} onPress={() => handleSelectResult(item)} disabled={isSaving}>
-              <Text style={styles.resultName}>{parts[0]}</Text>
-              <Text style={styles.resultSubtitle}>{parts.slice(1, 3).join(', ')}</Text>
-            </TouchableOpacity>
-          )
-        }}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
-
-      <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
-        <Text style={styles.skipText}>Skip for now</Text>
+      <Text style={styles.fallbackTitle}>Couldn't load this link</Text>
+      <Text style={styles.fallbackSubtitle}>
+        Please share a valid travel video — an Instagram Reel, YouTube Short, or TikTok video.
+      </Text>
+      <TouchableOpacity style={styles.saveBtn} onPress={handleSkip}>
+        <Text style={styles.saveBtnText}>Go back to my map</Text>
       </TouchableOpacity>
     </View>
   )
@@ -270,6 +186,7 @@ const styles = StyleSheet.create({
   centered: {
     flex: 1, backgroundColor: colors.bgPrimary,
     alignItems: 'center', justifyContent: 'center', padding: spacing[6],
+    paddingTop: spacing[5],
   },
   handle: {
     width: 40, height: 4, backgroundColor: colors.borderMedium,
@@ -326,26 +243,11 @@ const styles = StyleSheet.create({
 
   fallbackTitle: {
     fontSize: fontSizes.xl, fontFamily: 'PlayfairDisplay-Bold',
-    color: colors.textPrimary, marginBottom: spacing[2],
+    color: colors.textPrimary, marginBottom: spacing[3], textAlign: 'center',
   },
   fallbackSubtitle: {
     fontSize: fontSizes.base, fontFamily: 'DMSans-Regular',
-    color: colors.textSecondary, marginBottom: spacing[5],
+    color: colors.textSecondary, marginBottom: spacing[8],
+    textAlign: 'center', lineHeight: 22,
   },
-  searchRow: { flexDirection: 'row', gap: spacing[2], marginBottom: spacing[4] },
-  input: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.borderLight,
-    paddingHorizontal: spacing[4], paddingVertical: spacing[3],
-    fontSize: fontSizes.base, fontFamily: 'DMSans-Regular', color: colors.textPrimary,
-  },
-  searchBtn: {
-    backgroundColor: colors.accentGreen, borderRadius: radius.md,
-    paddingHorizontal: spacing[4], justifyContent: 'center',
-  },
-  searchBtnText: { color: '#FFFFFF', fontFamily: 'DMSans-Medium', fontSize: fontSizes.base },
-  resultRow: { paddingVertical: spacing[4] },
-  resultName: { fontSize: fontSizes.base, fontFamily: 'DMSans-Medium', color: colors.textPrimary },
-  resultSubtitle: { fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular', color: colors.textSecondary },
-  separator: { height: 1, backgroundColor: colors.borderLight },
 })

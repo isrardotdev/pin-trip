@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, ActivityIndicator, Text } from 'react-native'
+import { View, ActivityIndicator, Text, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
 import { api } from '../src/lib/api'
 import { useAuthStore } from '../src/stores/authStore'
-import { colors, fontSizes, spacing } from '../src/constants/theme'
+import { colors, fontSizes, spacing, radius } from '../src/constants/theme'
 
 // expo-share-intent is only available in native builds
 let useShareIntentContext: () => { hasShareIntent: boolean; shareIntent: any; resetShareIntent: () => void }
@@ -46,7 +46,7 @@ export default function HandleShareScreen() {
       const url = extractUrl(shareIntent)
 
       if (!url) {
-        setError(`No URL found in share intent.\nIntent: ${JSON.stringify(shareIntent)}`)
+        setError('could_not_process')
         return
       }
 
@@ -58,9 +58,8 @@ export default function HandleShareScreen() {
           pathname: '/(modals)/pin-confirm',
           params: { jobId, url },
         })
-      } catch (e: any) {
-        const msg = e?.response?.data?.error || e?.message || 'Unknown error'
-        setError(`Failed to queue reel: ${msg}\nURL: ${url}`)
+      } catch {
+        setError('could_not_process')
         resetShareIntent()
       }
     }
@@ -79,9 +78,18 @@ export default function HandleShareScreen() {
   if (error) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgPrimary, padding: spacing[6] }}>
-        <Text style={{ fontSize: fontSizes.sm, color: colors.accentRed, textAlign: 'center', fontFamily: 'IBMPlexMono-Regular' }}>
-          {error}
+        <Text style={{ fontSize: fontSizes.xl, fontFamily: 'PlayfairDisplay-Bold', color: colors.textPrimary, textAlign: 'center', marginBottom: spacing[3] }}>
+          Couldn't process this link
         </Text>
+        <Text style={{ fontSize: fontSizes.base, fontFamily: 'DMSans-Regular', color: colors.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: spacing[8] }}>
+          Try sharing again, or add the place manually from the map.
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.replace('/(tabs)')}
+          style={{ backgroundColor: colors.accentGreen, borderRadius: radius.full, paddingVertical: spacing[4], paddingHorizontal: spacing[8] }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: fontSizes.base, fontFamily: 'DMSans-Medium' }}>Go to my map</Text>
+        </TouchableOpacity>
       </View>
     )
   }

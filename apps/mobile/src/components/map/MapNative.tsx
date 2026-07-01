@@ -1,7 +1,7 @@
 import { useRef, useImperativeHandle, forwardRef, useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 import {
-  Map, Camera, GeoJSONSource, Layer, UserLocation,
+  Map, Camera, GeoJSONSource, Layer,
   type CameraRef, type GeoJSONSourceRef,
 } from '@maplibre/maplibre-react-native'
 import { Pin } from '@wanderpin/shared'
@@ -126,8 +126,6 @@ const MapNative = forwardRef<MapNativeRef, Props>(({ pins, selectedPinId, onPinP
         ref={cameraRef}
         initialViewState={{ center: initialCenter, zoom: initialZoom }}
       />
-
-      <UserLocation />
 
       <GeoJSONSource
         ref={sourceRef}

@@ -13,7 +13,6 @@ import { useAuthStore } from '../../src/stores/authStore'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { useEntitlements } from '../../src/hooks/useEntitlements'
 import { TripLibrary, SavedItinerarySummary } from '../../src/components/TripLibrary'
-import { PlannerLimitScreen } from '../../src/components/PlannerLimitScreen'
 import { SavePinModal } from '../../src/components/SavePinModal'
 import { ChatMessage, TripDocument, DayItem, PlannerResponse, PinStatus, PLANNER_FREE_LIMIT } from '@wanderpin/shared'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
@@ -101,12 +100,12 @@ function MessageBubble({ message, onSuggestion }: {
           {message.suggestions!.map(s => (
             <TouchableOpacity
               key={s}
-              style={styles.suggestionChip}
+              style={styles.inlineSuggestionChip}
               onPress={() => onSuggestion!(s)}
               activeOpacity={0.7}
             >
               <Ionicons name="return-down-forward-outline" size={11} color={colors.accentGreen} />
-              <Text style={styles.suggestionChipText}>{s}</Text>
+              <Text style={styles.inlineSuggestionChipText}>{s}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -626,22 +625,29 @@ export default function PlanScreen() {
             }
           />
 
-          {/* ── Paywall / input ── */}
+          {/* ── Limit reached / input ── */}
           {!canSendPlannerMessage ? (
             paywallVisible ? (
-              <PlannerLimitScreen
-                onUpgrade={() => { /* Phase 7: open RevenueCat */ }}
-                onDismiss={() => setPaywallVisible(false)}
-              />
+              <View style={[styles.limitScreen, { paddingBottom: spacing[4] + insets.bottom }]}>
+                <TouchableOpacity style={styles.limitScreenClose} onPress={() => setPaywallVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close" size={18} color={colors.textTertiary} />
+                </TouchableOpacity>
+                <View style={styles.limitScreenIcon}>
+                  <Ionicons name="chatbubble-ellipses" size={28} color={colors.accentGreen} />
+                </View>
+                <Text style={styles.limitScreenTitle}>You've used all {PLANNER_FREE_LIMIT} early access sessions</Text>
+                <Text style={styles.limitScreenBody}>
+                  AI planning is in early access during our launch period. We're working on making it available to everyone — stay tuned.
+                </Text>
+                <TouchableOpacity style={styles.limitScreenBtn} onPress={() => setPaywallVisible(false)} activeOpacity={0.85}>
+                  <Text style={styles.limitScreenBtnText}>Got it</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
-              <TouchableOpacity
-                style={[styles.limitBanner, { paddingBottom: spacing[3] + insets.bottom / 2 }]}
-                onPress={() => setPaywallVisible(true)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.limitBannerText}>You've used your {PLANNER_FREE_LIMIT} free sessions · tap to upgrade</Text>
-              </TouchableOpacity>
+              <View style={[styles.limitBanner, { paddingBottom: spacing[3] + insets.bottom / 2 }]}>
+                <Ionicons name="checkmark-circle-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.limitBannerText}>You've used all {PLANNER_FREE_LIMIT} early access sessions</Text>
+              </View>
             )
           ) : (
             <View style={[styles.inputBar, { paddingBottom: spacing[3] + insets.bottom / 2 }]}>
@@ -811,14 +817,14 @@ const styles = StyleSheet.create({
   // Suggestion chips — horizontal scroll under the AI bubble
   suggestionsScroll: { marginTop: spacing[2], marginLeft: 36 }, // 28px avatar + 8px gap
   suggestionsContent: { gap: spacing[2], paddingHorizontal: spacing[1] },
-  suggestionChip: {
+  inlineSuggestionChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     borderWidth: 1, borderColor: colors.accentGreen,
     borderRadius: radius.full,
     paddingVertical: 5, paddingHorizontal: spacing[3],
     backgroundColor: `${colors.accentGreen}08`,
   },
-  suggestionChipText: {
+  inlineSuggestionChipText: {
     fontSize: fontSizes.xs, fontFamily: 'DMSans-Medium',
     color: colors.accentGreen, flexShrink: 1,
   },
@@ -900,6 +906,47 @@ const styles = StyleSheet.create({
   limitBannerText: {
     fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular',
     color: colors.textSecondary, textAlign: 'center',
+  },
+
+  limitScreen: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.borderLight,
+    padding: spacing[6],
+    marginHorizontal: spacing[4],
+    marginVertical: spacing[4],
+    alignItems: 'center',
+    ...shadows.sheet,
+  },
+  limitScreenClose: {
+    position: 'absolute', top: spacing[4], right: spacing[4],
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.bgSecondary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  limitScreenIcon: {
+    width: 56, height: 56, borderRadius: radius.lg,
+    backgroundColor: colors.bgSecondary,
+    borderWidth: 1, borderColor: colors.borderLight,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing[4],
+  },
+  limitScreenTitle: {
+    fontSize: fontSizes.lg, fontFamily: 'PlayfairDisplay-Bold',
+    color: colors.textPrimary, textAlign: 'center', marginBottom: spacing[2],
+  },
+  limitScreenBody: {
+    fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular',
+    color: colors.textSecondary, textAlign: 'center',
+    lineHeight: 20, marginBottom: spacing[5],
+  },
+  limitScreenBtn: {
+    backgroundColor: colors.accentGreen, borderRadius: radius.full,
+    paddingVertical: spacing[4], paddingHorizontal: spacing[8],
+    alignSelf: 'stretch', alignItems: 'center',
+  },
+  limitScreenBtnText: {
+    color: '#FFFFFF', fontSize: fontSizes.base, fontFamily: 'DMSans-Medium',
   },
 
   // Conflict modal

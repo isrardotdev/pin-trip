@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Image, Dimensions, ScrollView,
@@ -7,8 +7,7 @@ import Animated, {
   useSharedValue, useAnimatedScrollHandler,
   useAnimatedStyle, interpolate, Extrapolation,
 } from 'react-native-reanimated'
-import { useRouter, useLocalSearchParams } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { usePinsStore } from '../../src/stores/pinsStore'
@@ -106,7 +105,6 @@ function PinCard({ pin, onPress, selected, isNew }: { pin: Pin; onPress: () => v
 // ─── Home screen ─────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const router = useRouter()
   const insets = useSafeAreaInsets()
   const { pins, fetchPins, fetchPolygon } = usePinsStore()
   const { newPinId } = useLocalSearchParams<{ newPinId?: string }>()
@@ -130,9 +128,6 @@ export default function HomeScreen() {
     height: interpolate(scrollY.value, [0, COLLAPSE_SCROLL_DISTANCE], [MAP_HEIGHT_FULL, MAP_HEIGHT_COLLAPSED], Extrapolation.CLAMP),
   }))
 
-  const fabAnimStyle = useAnimatedStyle(() => ({
-    top: interpolate(scrollY.value, [0, COLLAPSE_SCROLL_DISTANCE], [MAP_HEIGHT_FULL - 68, MAP_HEIGHT_COLLAPSED - 68], Extrapolation.CLAMP),
-  }))
 
   useEffect(() => { fetchPins() }, [])
 
@@ -228,16 +223,6 @@ export default function HomeScreen() {
         />
       </Animated.View>
 
-      {/* ── FAB ─────────────────────────────────────────────── */}
-      <Animated.View style={[styles.fabContainer, fabAnimStyle]}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => router.push('/(modals)/manual-add')}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
-      </Animated.View>
 
       {/* ── Bottom section: list OR detail panel ─────────────── */}
       {selectedPin ? (
@@ -267,30 +252,32 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipsRow}
-            style={styles.chipsScroll}
-          >
-            {STATUS_FILTERS.map((f) => (
-              <FilterChip
-                key={f.value}
-                label={f.label}
-                active={statusFilter === f.value}
-                onPress={() => setStatusFilter((prev) => prev === f.value ? 'ALL' : f.value)}
-              />
-            ))}
-            <View style={styles.chipDivider} />
-            {CATEGORY_FILTERS.map((f) => (
-              <FilterChip
-                key={f.value}
-                label={f.label}
-                active={categoryFilter === f.value}
-                onPress={() => setCategoryFilter((prev) => prev === f.value ? 'ALL' : f.value)}
-              />
-            ))}
-          </ScrollView>
+          {pins.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipsRow}
+              style={styles.chipsScroll}
+            >
+              {STATUS_FILTERS.map((f) => (
+                <FilterChip
+                  key={f.value}
+                  label={f.label}
+                  active={statusFilter === f.value}
+                  onPress={() => setStatusFilter((prev) => prev === f.value ? 'ALL' : f.value)}
+                />
+              ))}
+              <View style={styles.chipDivider} />
+              {CATEGORY_FILTERS.map((f) => (
+                <FilterChip
+                  key={f.value}
+                  label={f.label}
+                  active={categoryFilter === f.value}
+                  onPress={() => setCategoryFilter((prev) => prev === f.value ? 'ALL' : f.value)}
+                />
+              ))}
+            </ScrollView>
+          )}
 
           {filteredPins.length === 0 ? (
             <View style={styles.emptyState}>
@@ -327,12 +314,6 @@ const styles = StyleSheet.create({
 
   mapContainer: { width: '100%', overflow: 'hidden', backgroundColor: colors.darkSurface },
 
-  fabContainer: { position: 'absolute', right: spacing[5], zIndex: 20 },
-  fab: {
-    width: 52, height: 52, borderRadius: radius.full,
-    backgroundColor: colors.accentGreen, alignItems: 'center', justifyContent: 'center',
-    ...shadows.pin,
-  },
 
   listSection: { flex: 1 },
   listHeader: {

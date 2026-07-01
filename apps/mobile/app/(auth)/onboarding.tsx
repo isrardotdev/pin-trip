@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Dimensions, ListRenderItemInfo, ViewToken,
@@ -229,8 +229,9 @@ const SCREENS = [ReelScreen, MapScreen, PlannerScreen]
 function DotIndicator({ active }: { active: boolean }) {
   const dotWidth = useSharedValue(active ? 24 : 8)
 
-  if (active && dotWidth.value !== 24) dotWidth.value = withSpring(24, { damping: 15, stiffness: 120 })
-  if (!active && dotWidth.value !== 8) dotWidth.value = withSpring(8, { damping: 15, stiffness: 120 })
+  useEffect(() => {
+    dotWidth.value = withSpring(active ? 24 : 8, { damping: 15, stiffness: 120 })
+  }, [active])
 
   const animStyle = useAnimatedStyle(() => ({
     width: dotWidth.value,
