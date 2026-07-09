@@ -1,7 +1,9 @@
 FROM node:20-alpine
 
 # yt-dlp + ffmpeg (audio extraction)
-RUN apk add --no-cache ffmpeg yt-dlp openssl
+RUN apk add --no-cache ffmpeg python3 openssl curl && \
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp
 
 # pnpm
 RUN npm install -g pnpm

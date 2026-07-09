@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, Linking, Platform,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../../src/lib/api'
@@ -30,6 +30,9 @@ interface PlaceData {
   osmType?: string | null
   osmId?: string | null
   locationType?: string | null
+  geoMatchScore: number
+  geoMismatchNote: string | null
+  mapsSearchQuery: string
 }
 
 export default function PinConfirmModal() {
@@ -106,6 +109,15 @@ export default function PinConfirmModal() {
 
   const handleSkip = () => router.replace('/(tabs)')
 
+  const openMaps = (query: string) => {
+    const encoded = encodeURIComponent(query)
+    const nativeUrl = Platform.OS === 'ios' ? `maps://?q=${encoded}` : `geo:0,0?q=${encoded}`
+    const webUrl = `https://maps.google.com/?q=${encoded}`
+    Linking.canOpenURL(nativeUrl)
+      .then(supported => Linking.openURL(supported ? nativeUrl : webUrl))
+      .catch(() => Linking.openURL(webUrl))
+  }
+
   // ── Processing ──────────────────────────────────────────────────────────────
   if (state === 'processing') {
     return (
@@ -121,12 +133,19 @@ export default function PinConfirmModal() {
   // ── Confirm ─────────────────────────────────────────────────────────────────
   if (state === 'confirm' && placeData) {
     const location = [placeData.city, placeData.state, placeData.country].filter(Boolean).join(', ')
+    const hasMismatch = placeData.geoMatchScore < 1.0 && placeData.geoMismatchNote
     return (
       <View style={styles.container}>
         <View style={styles.handle} />
 
         <Text style={styles.confirmHeading}>We found this place</Text>
-        <Text style={styles.confirmSubtitle}>Save it to your map?</Text>
+        <Text style={styles.confirmSubtitle}>Does this look right?</Text>
+
+        {hasMismatch && (
+          <View style={styles.mismatchBanner}>
+            <Text style={styles.mismatchText}>⚠️ {placeData.geoMismatchNote}</Text>
+          </View>
+        )}
 
         <View style={styles.placeCard}>
           {placeData.thumbnailUrl ? (
@@ -155,8 +174,16 @@ export default function PinConfirmModal() {
         >
           {isSaving
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.saveBtnText}>Save to my map</Text>
+            : <Text style={styles.saveBtnText}>{hasMismatch ? 'Pin it anyway' : 'Save to my map'}</Text>
           }
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.mapsBtn}
+          onPress={() => openMaps(placeData.mapsSearchQuery)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.mapsBtnText}>🗺️ Search on Maps</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
@@ -237,6 +264,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[4], alignItems: 'center', marginBottom: spacing[3],
   },
   saveBtnText: { color: '#FFFFFF', fontSize: fontSizes.md, fontFamily: 'DMSans-Medium' },
+
+  mismatchBanner: {
+    backgroundColor: '#FEF3C7', borderRadius: radius.md,
+    padding: spacing[3], marginBottom: spacing[4],
+    borderWidth: 1, borderColor: '#F59E0B',
+  },
+  mismatchText: {
+    fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular',
+    color: '#92400E', lineHeight: 20,
+  },
+
+  mapsBtn: {
+    borderWidth: 1, borderColor: colors.borderMedium,
+    borderRadius: radius.full, paddingVertical: spacing[4],
+    alignItems: 'center', marginBottom: spacing[3],
+  },
+  mapsBtnText: { fontSize: fontSizes.md, fontFamily: 'DMSans-Medium', color: colors.textPrimary },
 
   skipBtn: { paddingVertical: spacing[3], alignItems: 'center' },
   skipText: { fontSize: fontSizes.sm, fontFamily: 'DMSans-Regular', color: colors.textTertiary },

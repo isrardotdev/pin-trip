@@ -24,6 +24,7 @@ function spawnYtDlp(args: string[]): Promise<void> {
     const proc = spawn(config.ytdlpPath, args)
     let stderr = ''
     proc.stderr?.on('data', (d: Buffer) => { stderr += d.toString() })
+    proc.on('error', (err) => reject(new Error(`yt-dlp spawn error: ${err.message}`)))
     proc.on('close', (code, signal) => {
       if (signal) return reject(new Error(`KILLED:${signal}`))
       if (code !== 0) return reject(new Error(`yt-dlp exit ${code}: ${stderr}`))
@@ -78,6 +79,7 @@ function startAudioDownload(url: string, jobId: string): AudioDownloadHandle {
     ])
     let stderr = ''
     proc.stderr?.on('data', (d: Buffer) => { stderr += d.toString() })
+    proc.on('error', (err) => reject(new Error(`yt-dlp spawn error: ${err.message}`)))
     proc.on('close', (code, signal) => {
       if (signal) return reject(new Error(`KILLED:${signal}`))
       if (code !== 0) return reject(new Error(`yt-dlp audio exit ${code}: ${stderr}`))
@@ -161,6 +163,7 @@ interface NominatimResult {
   class: string      // "boundary" | "natural" | "amenity" | "place" etc.
   type: string       // "administrative" | "valley" | "restaurant" etc.
   extratags?: { admin_level?: string }
+  address?: { country?: string; country_code?: string }
 }
 
 type LocationType = 'POINT' | 'AREA'
@@ -191,7 +194,7 @@ function classifyNominatimResult(result: NominatimResult): ClassifyResult {
 
 async function geocodeQuery(query: string): Promise<NominatimResult | null> {
   const response = await axios.get<NominatimResult[]>('https://nominatim.openstreetmap.org/search', {
-    params: { q: query, format: 'json', limit: 1, extratags: 1 },
+    params: { q: query, format: 'json', limit: 1, extratags: 1, addressdetails: 1 },
     headers: { 'User-Agent': config.nominatimUserAgent },
   })
   return response.data[0] || null
@@ -204,13 +207,12 @@ interface GeocodeResult {
   blockReason?: string
 }
 
-async function geocode(name: string, city: string, state: string): Promise<GeocodeResult | null> {
-  // Try progressively broader queries until one returns a result.
-  // Include [name] alone so "Spiti Valley" is tried even when city is null,
-  // before falling back to state-only queries that would get blocked.
+async function geocode(name: string, city: string, state: string, country: string): Promise<GeocodeResult | null> {
+  // Always keep country context in fallbacks to avoid matching same-named places in wrong countries.
   const queries = [
     [name, city, state],
-    [name],
+    [name, city, country],
+    [name, country],
     [city, state],
   ]
     .map(parts => parts.filter(Boolean).join(', '))
@@ -229,6 +231,31 @@ async function geocode(name: string, city: string, state: string): Promise<Geoco
 
   logger.info({ name, city, state }, 'Geocode: all queries returned no results')
   return null
+}
+
+function computeGeoMatch(nominatim: NominatimResult, extractedCountry: string): { score: number; mismatchNote: string | null } {
+  const geocodedCountry = nominatim.address?.country ?? ''
+  const geocodedCode = nominatim.address?.country_code?.toLowerCase() ?? ''
+
+  if (!geocodedCountry) return { score: 0.5, mismatchNote: null }
+
+  const extracted = extractedCountry.toLowerCase().trim()
+
+  // Build a small alias map for common cases
+  const matches = [
+    geocodedCountry.toLowerCase().includes(extracted),
+    extracted.includes(geocodedCountry.toLowerCase()),
+    // country code shortcuts: "india" → "in", "uae" → "ae"
+    (extracted === 'india' && geocodedCode === 'in'),
+    (extracted === 'uae' && geocodedCode === 'ae'),
+    (extracted === 'usa' && geocodedCode === 'us'),
+    (extracted === 'uk' && geocodedCode === 'gb'),
+  ]
+
+  if (matches.some(Boolean)) return { score: 1.0, mismatchNote: null }
+
+  const note = `The reel mentions ${extractedCountry} but the closest match we found is in ${geocodedCountry}. It may be a different location.`
+  return { score: 0.0, mismatchNote: note }
 }
 
 // ─── Main job processor ──────────────────────────────────────────────────────
@@ -250,6 +277,9 @@ interface PlaceData {
   osmType?: string | null
   osmId?: string | null   // BigInt serialised as string for JSON safety
   locationType?: string | null
+  geoMatchScore: number         // 1.0 = country matches, 0.0 = mismatch, 0.5 = unknown
+  geoMismatchNote: string | null  // human-readable warning when score < 1.0
+  mapsSearchQuery: string       // pre-built query for Maps deep link
 }
 
 interface JobResult {
@@ -307,7 +337,7 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
     }
 
     // ── Geocode ───────────────────────────────────────────────────────────
-    const geoResult = await geocode(extraction.name, extraction.city, extraction.state)
+    const geoResult = await geocode(extraction.name, extraction.city, extraction.state, extraction.country)
     if (!geoResult) {
       logger.info({ jobId }, 'Geocoding failed — returning null')
       return { placeData: null }
@@ -321,6 +351,8 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
     const { nominatim: geo, locationType } = geoResult
     const osmType = geo.osm_type
     const osmId = BigInt(geo.osm_id)
+    const { score: geoMatchScore, mismatchNote: geoMismatchNote } = computeGeoMatch(geo, extraction.country)
+    const mapsSearchQuery = [extraction.name, extraction.city, extraction.state, extraction.country].filter(Boolean).join(', ')
 
     // ── Level 2: name+city+state dedup (different reel, same place) ───────
     let place = await prisma.place.findFirst({
@@ -355,7 +387,7 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
       logger.info({ jobId, placeId: place.id, locationType }, 'New Place created')
     }
 
-    logger.info({ jobId, placeId: place.id }, 'Returning place data for user confirmation')
+    logger.info({ jobId, placeId: place.id, geoMatchScore }, 'Returning place data for user confirmation')
     return {
       placeData: {
         placeId: place.id,
@@ -372,6 +404,9 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
         osmType: place.osmType,
         osmId: place.osmId?.toString() ?? null,
         locationType: place.locationType,
+        geoMatchScore,
+        geoMismatchNote,
+        mapsSearchQuery,
       },
     }
   } finally {

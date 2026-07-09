@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "wanderpin",
     "userInterfaceStyle": "light",
-    "sdkVersion": "54.0.0",
+    "sdkVersion": "55.0.0",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -35,13 +35,21 @@
             "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1
           },
-          "androidIntentFilters": ["text/*"]
+          "androidIntentFilters": [
+            "text/*"
+          ]
         }
       ]
     ],
     "newArchEnabled": true,
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "45028361-b630-40c7-913f-5072788b2a3e"
+      }
     }
   }
 }
