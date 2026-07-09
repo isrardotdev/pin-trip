@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "45028361-b630-40c7-913f-5072788b2a3e"
+      }
+    },
+    "android": {
+      "package": "com.wholler.wanderpin"
+    }
+  }
+}
