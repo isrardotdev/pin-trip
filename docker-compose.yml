@@ -1,10 +1,16 @@
+# LOCAL DEVELOPMENT ONLY
+# Production runs the Docker Hub image directly on the droplet via GitHub Actions CI/CD.
+# See .github/workflows/deploy.yml
+
 services:
   redis:
     image: redis:7-alpine
     container_name: wanderpin-redis
     restart: unless-stopped
+    # Bind to localhost only — Docker bypasses UFW iptables rules,
+    # so ports: "6379:6379" would expose Redis to the internet on a real server.
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - wanderpin-redis-data:/data
 

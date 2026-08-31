@@ -1,12 +1,14 @@
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { authenticate, AuthRequest } from '../middleware/auth'
+import { parseLimiter } from '../middleware/rateLimiter'
 import { reelParserQueue } from '../queues/reelParser.queue'
 import { logger } from '../logger'
 
 export const parsePinRouter = Router()
 
 parsePinRouter.use(authenticate)
+parsePinRouter.use(parseLimiter)
 
 const parseSchema = z.object({
   url: z.string().url(),

@@ -1,0 +1,110 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE: ${{ secrets.DOCKER_USERNAME }}/wanderpin-backend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to droplet
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE: ${{ env.IMAGE }}
+          GIT_SHA: ${{ github.sha }}
+          NODE_ENV: production
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
+          NOMINATIM_USER_AGENT: ${{ secrets.NOMINATIM_USER_AGENT }}
+          EXPO_ACCESS_TOKEN: ${{ secrets.EXPO_ACCESS_TOKEN }}
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: root
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          envs: IMAGE,GIT_SHA,NODE_ENV,DATABASE_URL,DIRECT_URL,JWT_SECRET,JWT_EXPIRES_IN,GROQ_API_KEY,GEMINI_API_KEY,DISCORD_WEBHOOK_URL,ALLOWED_ORIGINS,NOMINATIM_USER_AGENT,EXPO_ACCESS_TOKEN
+          script: |
+            set -e
+
+            # Write env file from GitHub secrets (recreated on every deploy)
+            mkdir -p /etc/wanderpin
+            cat > /etc/wanderpin/.env << ENVEOF
+            NODE_ENV=${NODE_ENV}
+            PORT=4000
+            DATABASE_URL=${DATABASE_URL}
+            DIRECT_URL=${DIRECT_URL}
+            REDIS_URL=redis://wanderpin-redis:6379
+            JWT_SECRET=${JWT_SECRET}
+            JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+            GROQ_API_KEY=${GROQ_API_KEY}
+            GEMINI_API_KEY=${GEMINI_API_KEY}
+            DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+            ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+            NOMINATIM_USER_AGENT=${NOMINATIM_USER_AGENT}
+            EXPO_ACCESS_TOKEN=${EXPO_ACCESS_TOKEN}
+            YTDLP_PATH=/usr/local/bin/yt-dlp
+            TEMP_DIR=/tmp/wanderpin
+            ENVEOF
+            chmod 600 /etc/wanderpin/.env
+
+            # Pull the exact image for this commit
+            docker pull ${IMAGE}:${GIT_SHA}
+
+            # Run migrations in a throw-away container before swapping
+            docker run --rm \
+              --env-file /etc/wanderpin/.env \
+              --network wanderpin-net \
+              ${IMAGE}:${GIT_SHA} \
+              sh -c "cd /app/apps/backend && npx prisma migrate deploy"
+
+            # Swap container (brief gap — acceptable for mobile API)
+            docker stop wanderpin-backend || true
+            docker rm wanderpin-backend || true
+
+            docker run -d \
+              --name wanderpin-backend \
+              --restart unless-stopped \
+              --network wanderpin-net \
+              --env-file /etc/wanderpin/.env \
+              -v /tmp/wanderpin:/tmp/wanderpin \
+              -p 127.0.0.1:4000:4000 \
+              --log-opt max-size=10m \
+              --log-opt max-file=3 \
+              ${IMAGE}:${GIT_SHA}
+
+            # Keep disk clean — remove dangling images
+            docker image prune -f

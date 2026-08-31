@@ -8,6 +8,7 @@ import { Category } from '@wanderpin/shared'
 import { config } from '../config'
 import { prisma } from '../db'
 import { logger } from '../logger'
+import { notifyDiscord } from '../lib/discord'
 import { ReelParseJob } from '../queues/reelParser.queue'
 
 const groq = new Groq({ apiKey: config.groqApiKey })
@@ -298,7 +299,7 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
       const place = await prisma.place.findUnique({ where: { id: existingSource.placeId } })
       if (place) {
         logger.info({ jobId }, 'URL cache hit — skipped pipeline')
-        return { placeData: { placeId: place.id, name: place.name, city: place.city, state: place.state, country: place.country, lat: place.lat, lng: place.lng, thumbnailUrl: place.thumbnailUrl, category: place.category, confidence: place.aiConfidence ?? 1, sourceUrl: url } }
+        return { placeData: { placeId: place.id, name: place.name, city: place.city, state: place.state, country: place.country, lat: place.lat, lng: place.lng, thumbnailUrl: place.thumbnailUrl, category: place.category, confidence: place.aiConfidence ?? 1, sourceUrl: url, osmType: place.osmType, osmId: place.osmId?.toString() ?? null, locationType: place.locationType, geoMatchScore: 1, geoMismatchNote: null, mapsSearchQuery: [place.name, place.city, place.state, place.country].filter(Boolean).join(', ') } }
       }
     }
 
@@ -425,7 +426,14 @@ export function startReelParserWorker(): Worker<ReelParseJob> {
   })
 
   worker.on('completed', (job) => logger.info({ jobId: job.id }, 'Job completed'))
-  worker.on('failed', (job, err) => logger.error({ jobId: job?.id, err }, 'Job failed'))
+  worker.on('failed', (job, err) => {
+    logger.error({ jobId: job?.id, err }, 'Job failed')
+    notifyDiscord(
+      'Reel Parse Job Failed',
+      `URL: ${job?.data.url ?? 'unknown'}\nUser: ${job?.data.userId ?? 'unknown'}\nError: ${err.message}`,
+      'warn',
+    )
+  })
 
   return worker
 }

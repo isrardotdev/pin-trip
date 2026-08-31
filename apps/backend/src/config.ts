@@ -15,6 +15,7 @@ const envSchema = z.object({
   YTDLP_PATH: z.string().default('/usr/local/bin/yt-dlp'),
   TEMP_DIR: z.string().default('/tmp/wanderpin'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:8081,http://localhost:3000'),
+  DISCORD_WEBHOOK_URL: z.string().url().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)
@@ -41,4 +42,5 @@ export const config = {
   ytdlpPath: parsed.data.YTDLP_PATH,
   tempDir: parsed.data.TEMP_DIR,
   allowedOrigins: parsed.data.ALLOWED_ORIGINS.split(','),
+  discordWebhookUrl: parsed.data.DISCORD_WEBHOOK_URL,
 }

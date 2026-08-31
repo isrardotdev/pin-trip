@@ -5,11 +5,13 @@ import { prisma } from '../db'
 import { config } from '../config'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { requirePlannerAccess } from '../middleware/requirePlannerAccess'
+import { planLimiter } from '../middleware/rateLimiter'
 import { logger } from '../logger'
 import type { TripDocument, ChatMessage } from '@wanderpin/shared'
 
 export const planRouter = Router()
 planRouter.use(authenticate)
+planRouter.use(planLimiter)
 
 const genAI = new GoogleGenerativeAI(config.geminiApiKey)
 const MESSAGE_CAP = 20

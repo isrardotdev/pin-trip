@@ -3,6 +3,8 @@ import express from 'express'
 import cors from 'cors'
 import { config } from './config'
 import { logger } from './logger'
+import { notifyDiscord } from './lib/discord'
+import { globalLimiter, loginLimiter, registerLimiter } from './middleware/rateLimiter'
 import { authRouter } from './routes/auth'
 import { pinsRouter } from './routes/pins'
 import { parsePinRouter } from './routes/parsePin'
@@ -14,7 +16,10 @@ const app = express()
 
 app.use(cors({ origin: config.allowedOrigins, credentials: true }))
 app.use(express.json())
+app.use(globalLimiter)
 
+app.use('/api/auth/login', loginLimiter)
+app.use('/api/auth/register', registerLimiter)
 app.use('/api/auth', authRouter)
 app.use('/api/pins', pinsRouter)
 app.use('/api/pins/parse', parsePinRouter)
@@ -33,7 +38,20 @@ app.use((_req, res) => {
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error({ err }, 'Unhandled error')
+  notifyDiscord('Unhandled Server Error', `${err.name}: ${err.message}\n\n${err.stack ?? ''}`)
   res.status(500).json({ success: false, error: 'Internal server error' })
+})
+
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception')
+  notifyDiscord('Uncaught Exception', `${err.name}: ${err.message}\n\n${err.stack ?? ''}`)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)
+  logger.error({ reason }, 'Unhandled rejection')
+  notifyDiscord('Unhandled Promise Rejection', message, 'warn')
 })
 
 app.listen(config.port, () => {
