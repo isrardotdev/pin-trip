@@ -26,8 +26,9 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Prisma
-apps/backend/prisma/migrations/
 
 # Temp files
 /tmp/pintrip/
+
+marketing
+*.txt
