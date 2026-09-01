@@ -52,13 +52,18 @@ jobs:
           ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
           NOMINATIM_USER_AGENT: ${{ secrets.NOMINATIM_USER_AGENT }}
           EXPO_ACCESS_TOKEN: ${{ secrets.EXPO_ACCESS_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: root
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          envs: IMAGE,GIT_SHA,NODE_ENV,DATABASE_URL,DIRECT_URL,JWT_SECRET,JWT_EXPIRES_IN,GROQ_API_KEY,GEMINI_API_KEY,DISCORD_WEBHOOK_URL,ALLOWED_ORIGINS,NOMINATIM_USER_AGENT,EXPO_ACCESS_TOKEN
+          envs: IMAGE,GIT_SHA,NODE_ENV,DATABASE_URL,DIRECT_URL,JWT_SECRET,JWT_EXPIRES_IN,GROQ_API_KEY,GEMINI_API_KEY,DISCORD_WEBHOOK_URL,ALLOWED_ORIGINS,NOMINATIM_USER_AGENT,EXPO_ACCESS_TOKEN,DOCKER_USERNAME,DOCKER_TOKEN
           script: |
             set -e
+
+            # Log in to Docker Hub (needed to pull private image)
+            echo "${DOCKER_TOKEN}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
             # Write env file from GitHub secrets (recreated on every deploy)
             mkdir -p /etc/wanderpin
