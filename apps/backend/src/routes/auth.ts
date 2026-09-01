@@ -67,7 +67,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
 
   const { email, password } = parsed.data
-
+ 
   try {
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
