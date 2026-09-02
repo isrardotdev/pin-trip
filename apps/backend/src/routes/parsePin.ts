@@ -8,13 +8,16 @@ import { logger } from '../logger'
 export const parsePinRouter = Router()
 
 parsePinRouter.use(authenticate)
-parsePinRouter.use(parseLimiter)
 
 const parseSchema = z.object({
   url: z.string().url(),
 })
 
-parsePinRouter.post('/', async (req: AuthRequest, res: Response) => {
+// parseLimiter only guards the expensive pipeline trigger (yt-dlp + Whisper +
+// Llama). It must NOT apply router-wide — pin-confirm.tsx polls GET /:jobId
+// every 2s for up to 60s per job, which would burn through the same 20/hour
+// budget just from status checks on a single share.
+parsePinRouter.post('/', parseLimiter, async (req: AuthRequest, res: Response) => {
   logger.debug({ userId: req.userId, url: req.body?.url }, 'POST /pins/parse')
   const parsed = parseSchema.safeParse(req.body)
   if (!parsed.success) {
