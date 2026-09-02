@@ -83,7 +83,7 @@ Use **pnpm workspaces**. All three apps live under `apps/`. Shared TypeScript ty
 | Validation | Zod | Schema validation, pairs with Prisma |
 | Media download | yt-dlp (CLI, spawned as child_process) | Extract audio from reel URLs |
 | Transcription | Groq SDK (Whisper large-v3-turbo) | Free tier: 2k req/day, 9x cheaper than OpenAI |
-| LLM (extraction) | Groq SDK (llama-3.3-70b-versatile) | Free tier, great for structured extraction |
+| LLM (extraction) | Groq SDK (openai/gpt-oss-120b) | Free tier, great for structured extraction (llama-3.3-70b-versatile deprecated by Groq 2026-08-16) |
 | LLM (planner) | Google Generative AI SDK (gemini-2.0-flash) | Free tier: 15 RPM, 1M tokens/day |
 | Geocoding | Nominatim (OSM) via HTTP | Completely free, no API key |
 | File storage | Local disk during dev, Cloudflare R2 in prod | |
@@ -448,7 +448,7 @@ Step 2: Transcribe audio
   → result: transcript string
 
 Step 3: Extract location via LLM
-  → Groq SDK: groq.chat.completions.create with llama-3.3-70b-versatile
+  → Groq SDK: groq.chat.completions.create with openai/gpt-oss-120b
   → System prompt: (see Section 7 — Prompts)
   → Input: { caption, transcript }
   → Output (JSON): { name, city, state, country, category, confidence }

@@ -13,6 +13,43 @@ import { ReelParseJob } from '../queues/reelParser.queue'
 
 const groq = new Groq({ apiKey: config.groqApiKey })
 
+// ─── Groq model fallback ──────────────────────────────────────────────────────
+//
+// Groq periodically deprecates/removes models (e.g. llama-3.3-70b-versatile,
+// removed 2026-08-16). Each list is tried in order; if a model 404s or errors,
+// we fall through to the next one instead of failing the whole job. A Discord
+// warning fires the first time a fallback is actually used, so we find out
+// before the primary model is fully gone.
+const EXTRACTION_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
+const TRANSCRIPTION_MODELS = ['whisper-large-v3-turbo', 'whisper-large-v3']
+
+async function withGroqFallback<T>(
+  models: string[],
+  label: string,
+  attempt: (model: string) => Promise<T>,
+): Promise<T> {
+  let lastError: unknown
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i]
+    try {
+      const result = await attempt(model)
+      if (i > 0) {
+        logger.warn({ label, model, skipped: models.slice(0, i) }, 'Groq fallback model used')
+        notifyDiscord(
+          'Groq fallback model in use',
+          `${label}: primary model(s) [${models.slice(0, i).join(', ')}] failed.\nNow serving from: ${model}\n\nUpdate the model list in reelParser.worker.ts before the fallback also breaks.`,
+          'warn',
+        )
+      }
+      return result
+    } catch (err) {
+      lastError = err
+      logger.warn({ label, model, err: err instanceof Error ? err.message : err }, 'Groq model failed, trying next fallback')
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError))
+}
+
 // ─── yt-dlp helpers ──────────────────────────────────────────────────────────
 
 interface MetaResult {
@@ -100,11 +137,12 @@ function startAudioDownload(url: string, jobId: string): AudioDownloadHandle {
 // ─── Transcription ───────────────────────────────────────────────────────────
 
 async function transcribeAudio(audioPath: string): Promise<string> {
-  const file = fs.createReadStream(audioPath) as unknown as File
-  const result = await groq.audio.transcriptions.create({
-    file,
-    model: 'whisper-large-v3-turbo',
-  })
+  const result = await withGroqFallback(TRANSCRIPTION_MODELS, 'transcription', (model) =>
+    groq.audio.transcriptions.create({
+      file: fs.createReadStream(audioPath) as unknown as File,
+      model,
+    }),
+  )
   return result.text
 }
 
@@ -141,14 +179,16 @@ async function extractLocation(caption: string, transcript: string): Promise<Loc
     ? `Caption: ${caption}\nTranscript: ${transcript}`
     : `Caption: ${caption}`
 
-  const completion = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      { role: 'system', content: EXTRACTION_SYSTEM },
-      { role: 'user', content: userContent },
-    ],
-    response_format: { type: 'json_object' },
-  })
+  const completion = await withGroqFallback(EXTRACTION_MODELS, 'extraction', (model) =>
+    groq.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: EXTRACTION_SYSTEM },
+        { role: 'user', content: userContent },
+      ],
+      response_format: { type: 'json_object' },
+    }),
+  )
 
   return JSON.parse(completion.choices[0].message.content || '{}')
 }
