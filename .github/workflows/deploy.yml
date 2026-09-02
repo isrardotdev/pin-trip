@@ -3,6 +3,10 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/backend/**'
+      - 'packages/shared/**'
+      - '.github/workflows/deploy.yml'
 
 env:
   IMAGE: ${{ secrets.DOCKER_USERNAME }}/wanderpin-backend
