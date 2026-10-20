@@ -109,7 +109,6 @@ jobs:
               --restart unless-stopped \
               --network wanderpin-net \
               --env-file /etc/wanderpin/.env \
-              -v /tmp/wanderpin:/tmp/wanderpin \
               -p 127.0.0.1:4000:4000 \
               --log-opt max-size=10m \
               --log-opt max-file=3 \

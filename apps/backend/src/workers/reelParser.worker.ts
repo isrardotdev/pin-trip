@@ -71,6 +71,13 @@ function spawnYtDlp(args: string[]): Promise<void> {
   })
 }
 
+// YouTube increasingly blocks the default web player client with "Sign in to
+// confirm you're not a bot" — hits cloud/datacenter IPs (like our droplet)
+// far harder than residential ones. The android/ios player clients skip that
+// check in most cases. No-op for non-YouTube URLs (yt-dlp ignores extractor
+// args that don't match the URL's extractor).
+const YTDLP_YOUTUBE_ARGS = ['--extractor-args', 'youtube:player_client=android,ios']
+
 async function fetchMetadataOnly(url: string, jobId: string): Promise<MetaResult> {
   fs.mkdirSync(config.tempDir, { recursive: true })
   const outputPath = path.join(config.tempDir, `${jobId}_meta`)
@@ -82,6 +89,7 @@ async function fetchMetadataOnly(url: string, jobId: string): Promise<MetaResult
     '--output', outputPath,
     '--no-playlist',
     '--quiet',
+    ...YTDLP_YOUTUBE_ARGS,
     url,
   ])
 
@@ -113,6 +121,7 @@ function startAudioDownload(url: string, jobId: string): AudioDownloadHandle {
       '--output', audioPath,
       '--no-playlist',
       '--quiet',
+      ...YTDLP_YOUTUBE_ARGS,
       url,
     ])
     let stderr = ''
@@ -346,29 +355,41 @@ async function processJob(job: Job<ReelParseJob>): Promise<JobResult> {
     // ── Parallel: start metadata fetch AND audio download simultaneously ──
     const metaPromise = fetchMetadataOnly(url, jobId)
     const audioHandle = startAudioDownload(url, jobId)
+    // Attach a catch immediately so this background process can never become
+    // an unhandled rejection — without this, a metadata-step failure below
+    // leaves it running orphaned, racing a same-jobId retry's own download
+    // onto the same temp file path.
+    audioHandle.promise.catch(() => {})
 
     let caption = '', thumbnailUrl = ''
     let extraction: LocationExtraction
+    let usedAudio = false
 
-    // Metadata arrives fast (~1–2s)
-    ;({ caption, thumbnailUrl } = await metaPromise)
-    logger.info({ jobId, captionLen: caption.length }, 'Metadata fetched')
+    try {
+      // Metadata arrives fast (~1–2s)
+      ;({ caption, thumbnailUrl } = await metaPromise)
+      logger.info({ jobId, captionLen: caption.length }, 'Metadata fetched')
 
-    // Try caption-only extraction first
-    const captionResult = await extractLocation(caption, '')
+      // Try caption-only extraction first
+      const captionResult = await extractLocation(caption, '')
 
-    if (captionResult.name && captionResult.confidence >= 0.70) {
-      // Fast path: caption was clear enough, abort audio download
-      audioHandle.abort()
-      audioHandle.promise.catch(() => {}) // suppress abort error
-      extraction = captionResult
-      logger.info({ jobId, confidence: captionResult.confidence, name: captionResult.name, city: captionResult.city, state: captionResult.state }, 'Caption-fast path')
-    } else {
-      // Slow path: audio was already downloading in background
-      audioPath = await audioHandle.promise
-      const transcript = await transcribeAudio(audioPath)
-      extraction = await extractLocation(caption, transcript)
-      logger.info({ jobId, confidence: extraction.confidence }, 'Audio fallback path')
+      if (captionResult.name && captionResult.confidence >= 0.70) {
+        // Fast path: caption was clear enough, no need for audio
+        extraction = captionResult
+        logger.info({ jobId, confidence: captionResult.confidence, name: captionResult.name, city: captionResult.city, state: captionResult.state }, 'Caption-fast path')
+      } else {
+        // Slow path: audio was already downloading in background
+        usedAudio = true
+        audioPath = await audioHandle.promise
+        const transcript = await transcribeAudio(audioPath)
+        extraction = await extractLocation(caption, transcript)
+        logger.info({ jobId, confidence: extraction.confidence }, 'Audio fallback path')
+      }
+    } finally {
+      // Any path that doesn't end up consuming the audio download — the fast
+      // path, or any error thrown before/during it — must abort it so it
+      // doesn't keep running orphaned.
+      if (!usedAudio) audioHandle.abort()
     }
 
     // ── Low confidence → no place data, show fallback ────────────────────
