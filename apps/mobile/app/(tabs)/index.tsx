@@ -210,32 +210,26 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
 
-      {/* ── Map ─────────────────────────────────────────────── */}
-      <Animated.View style={[styles.mapContainer, mapAnimStyle]}>
-        <MapNative
-          key={mapKey}
-          ref={mapRef}
-          pins={filteredPins}
-          selectedPinId={selectedPinId}
-          onPinPress={selectPin}
-          mapStyle={process.env.EXPO_PUBLIC_MAPTILER_STYLE_URL}
-          selectedBoundary={selectedBoundary}
-        />
-      </Animated.View>
-
-
-      {/* ── Bottom section: list OR detail panel ─────────────── */}
+      {/* ── Bottom section: list OR detail panel ───────────────
+          The map is an absolutely-positioned overlay (below), so its
+          animated height never resizes this ScrollView's own viewport —
+          that resize-mid-scroll is what caused the jump/glitch on Android.
+          An animated spacer matching the map's height reserves the same
+          visual space inside the scroll content instead. */}
       {selectedPin ? (
-        <PinDetailInline
-          pin={selectedPin}
-          index={selectedIndex}
-          total={filteredPins.length}
-          onClose={clearSelection}
-          onPrev={goToPrev}
-          onNext={goToNext}
-          onBeforeDelete={() => setMapKey(k => k + 1)}
-          insetBottom={insets.bottom}
-        />
+        <View style={styles.detailWrapper}>
+          <Animated.View style={mapAnimStyle} pointerEvents="none" />
+          <PinDetailInline
+            pin={selectedPin}
+            index={selectedIndex}
+            total={filteredPins.length}
+            onClose={clearSelection}
+            onPrev={goToPrev}
+            onNext={goToNext}
+            onBeforeDelete={() => setMapKey(k => k + 1)}
+            insetBottom={insets.bottom}
+          />
+        </View>
       ) : (
         <Animated.ScrollView
           style={styles.listSection}
@@ -245,6 +239,8 @@ export default function HomeScreen() {
           decelerationRate={0.92}
           contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         >
+          <Animated.View style={mapAnimStyle} pointerEvents="none" />
+
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>Your Pins</Text>
             <View style={styles.pinCountBadge}>
@@ -303,6 +299,19 @@ export default function HomeScreen() {
           )}
         </Animated.ScrollView>
       )}
+
+      {/* ── Map overlay ─────────────────────────────────────── */}
+      <Animated.View style={[styles.mapContainer, mapAnimStyle]}>
+        <MapNative
+          key={mapKey}
+          ref={mapRef}
+          pins={filteredPins}
+          selectedPinId={selectedPinId}
+          onPinPress={selectPin}
+          mapStyle={process.env.EXPO_PUBLIC_MAPTILER_STYLE_URL}
+          selectedBoundary={selectedBoundary}
+        />
+      </Animated.View>
     </View>
   )
 }
@@ -312,8 +321,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary },
 
-  mapContainer: { width: '100%', overflow: 'hidden', backgroundColor: colors.darkSurface },
+  mapContainer: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    width: '100%', overflow: 'hidden', backgroundColor: colors.darkSurface,
+  },
 
+  detailWrapper: { flex: 1 },
 
   listSection: { flex: 1 },
   listHeader: {

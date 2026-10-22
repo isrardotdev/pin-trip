@@ -10,7 +10,6 @@ import {
   Share2,
   MapPin,
   MessageSquareText,
-  Quote,
   ChevronDown,
   Smartphone,
   Globe,
@@ -31,24 +30,6 @@ const scaleIn = {
   hidden: { opacity: 0, scale: 0.92 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: 'easeOut' } },
 }
-
-const testimonials = [
-  {
-    quote: "I used to screenshot reels and forget about them. Now I have 80 pins across 14 countries. My Southeast Asia trip next month is basically already planned.",
-    name: "Mia K.",
-    detail: "Travelled to 23 countries",
-  },
-  {
-    quote: "The AI built me a 10-day Japan itinerary from the places I'd saved over a year. It knew which ones were close to each other. I would never have figured that out myself.",
-    name: "Tom R.",
-    detail: "Based in London",
-  },
-  {
-    quote: "I'm not a planner. I just share every beautiful reel I see and forget about it. Then when a trip comes up, WanderPin does the rest.",
-    name: "Sara V.",
-    detail: "Solo traveller",
-  },
-]
 
 const faqs = [
   {
@@ -123,6 +104,58 @@ const steps = [
   },
 ]
 
+// Android isn't publicly downloadable yet — this button doesn't link anywhere.
+// Hovering (or tapping, for touch devices) reveals a custom tooltip pointing
+// people to Instagram DMs for beta access, instead of a native `title` tooltip.
+function AndroidDownloadButton({ size = 'base' }: { size?: 'base' | 'lg' }) {
+  const [open, setOpen] = useState(false)
+  const padding = size === 'lg' ? 'px-10 py-4' : 'px-8 py-4'
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-describedby="android-beta-tooltip"
+        className={`group bg-accent-green text-white font-body font-medium ${padding} rounded-full hover:bg-opacity-90 transition-all shadow-lg shadow-accent-green/25 hover:shadow-xl hover:shadow-accent-green/30 hover:scale-[1.02] active:scale-[0.98]`}
+      >
+        Download for Android
+      </button>
+
+      {/* bottom-full + pb-3 (padding, not margin) keeps the hoverable area
+          contiguous from button to tooltip — a margin gap here is what was
+          causing the tooltip to flicker closed when moving the cursor onto it. */}
+      <div
+        id="android-beta-tooltip"
+        role="tooltip"
+        className={`absolute left-1/2 -translate-x-1/2 bottom-full pb-3 w-64 z-30 transition-all duration-200 ${
+          open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-1 pointer-events-none'
+        }`}
+      >
+        <div className="relative bg-dark-secondary border border-white/10 rounded-xl px-4 py-3 shadow-xl shadow-black/30 text-center">
+          <p className="font-body text-sm text-bg-primary leading-snug">
+            Not public yet &mdash; DM us on Instagram{' '}
+            <a
+              href="https://instagram.com/wanderpin.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-green-light font-medium underline decoration-accent-green-light/40 underline-offset-2 hover:text-white transition-colors"
+            >
+              @wanderpin.app
+            </a>{' '}
+            for beta access.
+          </p>
+          <div className="w-3 h-3 bg-dark-secondary border-r border-b border-white/10 rotate-45 absolute left-1/2 -translate-x-1/2 -bottom-1.5" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
@@ -171,90 +204,43 @@ export default function LandingPage() {
             <span className="italic text-accent-green-light">scroll past.</span>
           </motion.h1>
 
-          <motion.p
-            variants={fadeUp}
-            className="font-body text-lg text-text-tertiary max-w-lg mx-auto mb-10 leading-relaxed"
-          >
-            That caf&eacute; in Tokyo. The waterfall in Iceland. The village in Portugal.
-            <br />
-            Stop losing the places that make you stop scrolling.
-          </motion.p>
-
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-            <a
-              href={process.env.NEXT_PUBLIC_APP_STORE_URL || '#'}
-              className="group bg-accent-green text-white font-body font-medium px-8 py-4 rounded-full hover:bg-opacity-90 transition-all shadow-lg shadow-accent-green/25 hover:shadow-xl hover:shadow-accent-green/30 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Download for iOS
-            </a>
-            <a
-              href={process.env.NEXT_PUBLIC_PLAY_STORE_URL || '#'}
-              className="border border-border-medium text-bg-primary font-body font-medium px-8 py-4 rounded-full hover:border-accent-green-light hover:bg-white/5 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Get it on Android
-            </a>
+          <motion.div variants={fadeUp} className="max-w-xl mx-auto mb-10">
+            <p className="font-body text-lg text-text-tertiary leading-relaxed">
+              That caf&eacute; in Tokyo. The waterfall in Iceland. The village in Portugal.
+            </p>
+            <p className="font-body text-lg text-text-tertiary leading-relaxed">
+              Stop losing the places that make you stop scrolling.
+            </p>
           </motion.div>
 
-          <motion.p variants={fadeUp} className="font-body text-xs text-text-tertiary opacity-60">
-            Free to download &middot; No credit card
-          </motion.p>
+          <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 mb-6">
+            <AndroidDownloadButton />
+            <span className="font-body text-xs text-text-tertiary opacity-50">iOS &mdash; coming soon</span>
+          </motion.div>
         </motion.div>
 
-        {/* Phone mockup */}
+        {/* Phone mockup — styled like a modern Android phone (punch-hole camera, not a notch) */}
         <motion.div
           initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.9, ease: 'easeOut' }}
           className="mt-16 relative z-10"
         >
-          <div className="relative mx-auto" style={{ width: 280 }}>
+          <div className="relative mx-auto" style={{ width: 280, height: 572 }}>
             {/* Phone frame */}
-            <div className="relative bg-dark-secondary rounded-[2.5rem] p-2 shadow-2xl shadow-black/40 border border-white/10">
-              {/* Notch */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-dark-secondary rounded-b-2xl z-20" />
-              {/* Screen */}
-              <div className="rounded-[2rem] overflow-hidden bg-[#1a1a2e] aspect-[9/19.5] relative">
-                {/* Map mockup inside phone */}
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(ellipse at 40% 45%, rgba(45,106,79,0.25) 0%, transparent 55%), radial-gradient(ellipse at 65% 35%, rgba(82,183,136,0.15) 0%, transparent 45%)',
-                }}>
-                  {/* Simulated map pins */}
-                  {[
-                    { top: '22%', left: '30%', label: 'Lisbon', color: '#52B788', size: 'w-2.5 h-2.5' },
-                    { top: '18%', left: '55%', label: 'Iceland', color: '#2D6A4F', size: 'w-2 h-2' },
-                    { top: '35%', left: '70%', label: 'Kyoto', color: '#52B788', size: 'w-2.5 h-2.5' },
-                    { top: '50%', left: '40%', label: 'Morocco', color: '#C4862A', size: 'w-2 h-2' },
-                    { top: '62%', left: '60%', label: 'Bali', color: '#52B788', size: 'w-2 h-2' },
-                    { top: '42%', left: '22%', label: 'Alps', color: '#2D6A4F', size: 'w-2 h-2' },
-                  ].map((pin) => (
-                    <div
-                      key={pin.label}
-                      className="absolute flex flex-col items-center"
-                      style={{ top: pin.top, left: pin.left }}
-                    >
-                      <div
-                        className={`${pin.size} rounded-full border-[1.5px] border-white/80`}
-                        style={{ backgroundColor: pin.color, boxShadow: `0 0 12px ${pin.color}90` }}
-                      />
-                      <span className="font-mono text-[7px] mt-0.5 text-white/50">{pin.label}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* Bottom tab bar mockup */}
-                <div className="absolute bottom-0 left-0 right-0 h-14 bg-[#1a1a2e]/90 backdrop-blur-sm border-t border-white/5 flex items-center justify-around px-6">
-                  <div className="w-5 h-5 rounded-full bg-accent-green/30 border border-accent-green/50" />
-                  <div className="w-5 h-5 rounded-full bg-white/10" />
-                  <div className="w-5 h-5 rounded-full bg-white/10" />
-                  <div className="w-5 h-5 rounded-full bg-white/10" />
-                </div>
-                {/* Status bar mockup */}
-                <div className="absolute top-7 left-0 right-0 flex justify-between px-6">
-                  <span className="text-[8px] text-white/40 font-body">9:41</span>
-                  <div className="flex gap-1">
-                    <div className="w-3 h-1.5 rounded-sm bg-white/30" />
-                    <div className="w-3 h-1.5 rounded-sm bg-white/30" />
-                  </div>
-                </div>
+            <div className="relative bg-dark-secondary rounded-[2.2rem] p-2 shadow-2xl shadow-black/40 border border-white/10 w-full h-full">
+              {/* Screen — real app screenshot */}
+              <div className="rounded-[1.8rem] overflow-hidden bg-bg-primary relative w-full h-full">
+                <Image
+                  src="/screenshots/hero-map-pins.png"
+                  alt="WanderPin's map with saved pins and the pin list below it"
+                  fill
+                  className="object-cover object-top"
+                  sizes="280px"
+                  priority
+                />
+                {/* Punch-hole front camera */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-black/80 border border-white/10 z-20" />
               </div>
             </div>
             {/* Reflection glow */}
@@ -451,7 +437,7 @@ export default function LandingPage() {
             Every place you&apos;ve ever stopped scrolling for &mdash; finally in one place you can actually use.
           </motion.p>
 
-          {/* Map + Phone side by side */}
+          {/* Real map screenshot */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -459,64 +445,54 @@ export default function LandingPage() {
             transition={{ duration: 1 }}
             className="relative"
           >
-            {/* Large map card */}
-            <div className="w-full h-[420px] bg-dark-secondary rounded-3xl border border-white/[0.06] relative overflow-hidden shadow-2xl">
-              {/* Map background gradient */}
-              <div className="absolute inset-0" style={{
-                backgroundImage:
-                  'radial-gradient(ellipse at 35% 55%, rgba(45,106,79,0.18) 0%, transparent 55%), radial-gradient(ellipse at 70% 30%, rgba(82,183,136,0.12) 0%, transparent 45%), radial-gradient(ellipse at 55% 75%, rgba(196,134,42,0.06) 0%, transparent 35%)',
-              }} />
-              {/* Grid overlay */}
-              <div className="absolute inset-0 opacity-[0.03]" style={{
-                backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)',
-                backgroundSize: '48px 48px',
-              }} />
-              {/* Pins with glow effect */}
+            <div className="w-full h-[320px] md:h-[460px] bg-dark-secondary rounded-3xl border border-white/[0.06] relative overflow-hidden shadow-2xl">
+              <Image
+                src="/screenshots/map-showcase.png"
+                alt="A real WanderPin map showing saved pins clustered across a city, pulled straight from the app"
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 768px) 100vw, 1024px"
+              />
+              {/* A few extra pins, purely decorative — no names, just motion to
+                  suggest a living map. Styled like the app's real pin markers
+                  (white ring + glow) so they read as pins, not stray dots.
+                  Positioned down the narrow peninsula strip (roughly 35-55%
+                  from the left) running through Mahalakshmi/Kamathipura in
+                  this crop — land here is a center column, not the edges. */}
               {[
-                { top: '22%', left: '15%', label: 'Faroe Islands', color: '#52B788', pulse: true },
-                { top: '32%', left: '38%', label: 'Amalfi', color: '#2D6A4F', pulse: false },
-                { top: '18%', left: '55%', label: 'Cappadocia', color: '#C4862A', pulse: true },
-                { top: '45%', left: '72%', label: 'Kyoto', color: '#2D6A4F', pulse: false },
-                { top: '60%', left: '58%', label: 'Bali', color: '#52B788', pulse: false },
-                { top: '68%', left: '28%', label: 'Patagonia', color: '#2D6A4F', pulse: true },
-                { top: '38%', left: '22%', label: 'Lisbon', color: '#52B788', pulse: false },
-                { top: '52%', left: '45%', label: 'Zanzibar', color: '#C4862A', pulse: false },
-              ].map((pin) => (
+                { top: '18%', left: '48%', color: '#52B788', delay: '0s' },
+                { top: '30%', left: '40%', color: '#C4862A', delay: '0.7s' },
+                { top: '58%', left: '48%', color: '#52B788', delay: '1.4s' },
+                { top: '85%', left: '38%', color: '#2D6A4F', delay: '2.1s' },
+              ].map((dot, i) => (
                 <div
-                  key={pin.label}
-                  className="absolute flex flex-col items-center group"
-                  style={{ top: pin.top, left: pin.left }}
-                >
-                  {pin.pulse && (
-                    <div
-                      className="absolute w-6 h-6 rounded-full animate-ping opacity-20"
-                      style={{ backgroundColor: pin.color }}
-                    />
-                  )}
-                  <div
-                    className="relative w-3.5 h-3.5 rounded-full border-2 border-white/70 transition-transform group-hover:scale-150"
-                    style={{ backgroundColor: pin.color, boxShadow: `0 0 16px ${pin.color}90, 0 0 32px ${pin.color}40` }}
-                  />
-                  <span className="font-mono text-[10px] mt-1.5 text-white/50 whitespace-nowrap">{pin.label}</span>
-                </div>
+                  key={i}
+                  className="absolute w-4 h-4 rounded-full border-2 border-white/80 animate-pulse"
+                  style={{
+                    top: dot.top,
+                    left: dot.left,
+                    backgroundColor: dot.color,
+                    boxShadow: `0 0 14px ${dot.color}, 0 0 28px ${dot.color}80`,
+                    animationDelay: dot.delay,
+                    animationDuration: '2.6s',
+                  }}
+                />
               ))}
-
-              {/* Corner stats */}
-              <div className="absolute bottom-5 left-6 flex items-center gap-4">
+              {/* Status legend — overlaid as a caption bar, not drawn onto the screenshot itself */}
+              <div className="absolute bottom-0 left-0 right-0 bg-dark-surface/90 backdrop-blur-sm border-t border-white/[0.06] py-3 px-6 flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-accent-green-light" />
-                  <span className="font-mono text-[10px] text-white/40">Wishlist</span>
+                  <span className="font-mono text-[10px] text-white/50">Wishlist</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-accent-amber" />
-                  <span className="font-mono text-[10px] text-white/40">Planning</span>
+                  <span className="font-mono text-[10px] text-white/50">Planning</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-accent-green" />
-                  <span className="font-mono text-[10px] text-white/40">Visited</span>
+                  <span className="font-mono text-[10px] text-white/50">Visited</span>
                 </div>
               </div>
-              <span className="absolute bottom-5 right-6 font-mono text-[10px] text-white/25">wanderpin.app</span>
             </div>
           </motion.div>
         </div>
@@ -555,10 +531,10 @@ export default function LandingPage() {
             variants={fadeUp}
             className="font-body text-lg text-text-secondary text-center mb-16 max-w-lg mx-auto"
           >
-            A personal world map, AI-powered trip planning, and a curated discover feed. All in one app.
+            A personal world map, AI-powered trip planning, and smart location detection. All in one app.
           </motion.p>
 
-          {/* Three phone mockups */}
+          {/* Three phone mockups — real screenshots */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -567,9 +543,9 @@ export default function LandingPage() {
             className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-6"
           >
             {[
-              { label: 'Your Map', sublabel: 'Every saved place, pinned', accent: '#2D6A4F' },
-              { label: 'AI Planner', sublabel: 'Itineraries from your pins', accent: '#52B788' },
-              { label: 'Discover', sublabel: 'Curated destinations', accent: '#C4862A' },
+              { label: 'Pin Details', sublabel: 'Every saved place, with the source reel', src: '/screenshots/app-pin-detail.png', alt: 'A saved pin’s detail view showing its location on the map and the Instagram reel it came from' },
+              { label: 'AI Planner', sublabel: 'Itineraries built from your pins', src: '/screenshots/app-planner.png', alt: 'The AI trip planner chat screen with suggested prompts' },
+              { label: 'Smart Detection', sublabel: 'AI finds the place and previews it for you', src: '/screenshots/hero-pin-found.png', alt: 'WanderPin confirming a place it detected from a shared reel' },
             ].map((screen, i) => (
               <motion.div
                 key={screen.label}
@@ -577,98 +553,24 @@ export default function LandingPage() {
                 className="relative"
                 style={{ zIndex: i === 1 ? 10 : 1 }}
               >
-                <div className={`relative mx-auto ${i === 1 ? 'scale-105' : 'md:scale-95 md:opacity-90'}`} style={{ width: 220 }}>
-                  {/* Phone frame */}
-                  <div className="bg-dark-secondary rounded-[2rem] p-1.5 shadow-xl shadow-black/20 border border-white/[0.08]">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-dark-secondary rounded-b-xl z-20" />
-                    <div className="rounded-[1.75rem] overflow-hidden bg-bg-primary aspect-[9/19.5] relative flex flex-col items-center justify-center">
-                      {/* Placeholder screen content */}
-                      <div className="w-8 h-8 rounded-xl mb-3 flex items-center justify-center" style={{ backgroundColor: `${screen.accent}20` }}>
-                        {i === 0 && <MapPin size={18} style={{ color: screen.accent }} />}
-                        {i === 1 && <MessageSquareText size={18} style={{ color: screen.accent }} />}
-                        {i === 2 && <Sparkles size={18} style={{ color: screen.accent }} />}
-                      </div>
-                      <span className="font-body text-xs font-medium text-text-primary">{screen.label}</span>
-                      <span className="font-body text-[10px] text-text-tertiary mt-1">{screen.sublabel}</span>
-                      {/* Decorative lines representing content */}
-                      <div className="mt-4 space-y-2 px-6 w-full">
-                        <div className="h-1.5 bg-border-light rounded-full w-full" />
-                        <div className="h-1.5 bg-border-light rounded-full w-3/4" />
-                        <div className="h-1.5 bg-border-light rounded-full w-5/6" />
-                        <div className="h-6 rounded-lg mt-3" style={{ backgroundColor: `${screen.accent}12` }} />
-                        <div className="h-6 rounded-lg" style={{ backgroundColor: `${screen.accent}08` }} />
-                      </div>
+                <div className={`relative mx-auto ${i === 1 ? 'scale-105' : 'md:scale-95 md:opacity-90'}`} style={{ width: 220, height: 477 }}>
+                  {/* Phone frame — Android-style punch-hole camera, not a notch */}
+                  <div className="relative bg-dark-secondary rounded-[1.9rem] p-1.5 shadow-xl shadow-black/20 border border-white/[0.08] w-full h-full">
+                    <div className="rounded-[1.5rem] overflow-hidden bg-bg-primary relative w-full h-full">
+                      <Image
+                        src={screen.src}
+                        alt={screen.alt}
+                        fill
+                        className="object-cover object-top"
+                        sizes="220px"
+                      />
+                      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-black/80 border border-white/10 z-20" />
                     </div>
                   </div>
                 </div>
                 {/* Label below phone */}
-                <p className="text-center mt-4 font-body text-sm text-text-secondary font-medium">{screen.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── 6. Testimonials ── */}
-      <section className="bg-bg-secondary py-28 px-6 relative">
-        <div className="max-w-5xl mx-auto">
-          <motion.h2
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            className="font-display text-4xl md:text-5xl font-bold text-text-primary text-center mb-4"
-          >
-            From wanderers like you
-          </motion.h2>
-          <motion.p
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            className="font-body text-lg text-text-secondary text-center mb-16 max-w-md mx-auto"
-          >
-            People who were also losing their discoveries before they found WanderPin.
-          </motion.p>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-            className="grid md:grid-cols-3 gap-6"
-          >
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={t.name}
-                variants={scaleIn}
-                className="group bg-white rounded-2xl p-8 border border-border-light hover:shadow-lg hover:shadow-black/[0.04] transition-all duration-300 flex flex-col relative overflow-hidden"
-              >
-                {/* Accent top border */}
-                <div
-                  className="absolute top-0 left-0 right-0 h-[2px]"
-                  style={{
-                    background: i === 0
-                      ? 'linear-gradient(90deg, #2D6A4F, #52B788)'
-                      : i === 1
-                        ? 'linear-gradient(90deg, #52B788, #C4862A)'
-                        : 'linear-gradient(90deg, #C4862A, #2D6A4F)',
-                  }}
-                />
-                <Quote size={28} className="text-accent-green/15 mb-4 flex-shrink-0" strokeWidth={1.5} />
-                <p className="font-body text-sm text-text-primary leading-relaxed flex-1 mb-6">
-                  {t.quote}
-                </p>
-                <div className="flex items-center gap-3">
-                  {/* Avatar circle with initial */}
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent-green to-accent-green-light flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-body text-sm font-medium">{t.name[0]}</span>
-                  </div>
-                  <div>
-                    <div className="font-body font-medium text-text-primary text-sm">{t.name}</div>
-                    <div className="font-body text-xs text-text-tertiary mt-0.5">{t.detail}</div>
-                  </div>
-                </div>
+                <p className="text-center mt-4 font-body text-sm text-text-primary font-medium">{screen.label}</p>
+                <p className="text-center mt-0.5 font-body text-xs text-text-tertiary">{screen.sublabel}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -766,22 +668,12 @@ export default function LandingPage() {
           <motion.p variants={fadeUp} className="font-body text-lg text-text-tertiary mb-10 leading-relaxed">
             You&apos;ve already discovered the places. Time to actually go.
           </motion.p>
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href={process.env.NEXT_PUBLIC_APP_STORE_URL || '#'}
-              className="bg-accent-green text-white font-body font-medium px-10 py-4 rounded-full hover:bg-opacity-90 transition-all shadow-lg shadow-accent-green/25 hover:shadow-xl hover:shadow-accent-green/30 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Download for iOS
-            </a>
-            <a
-              href={process.env.NEXT_PUBLIC_PLAY_STORE_URL || '#'}
-              className="border border-border-medium text-bg-primary font-body font-medium px-10 py-4 rounded-full hover:border-accent-green-light hover:bg-white/5 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Get it on Android
-            </a>
+          <motion.div variants={fadeUp} className="flex flex-col items-center gap-3">
+            <AndroidDownloadButton size="lg" />
+            <span className="font-body text-xs text-text-tertiary opacity-50">iOS &mdash; coming soon</span>
           </motion.div>
           <motion.p variants={fadeUp} className="font-body text-xs text-text-tertiary mt-6 opacity-50">
-            Free &middot; Works with Instagram &middot; More platforms coming soon
+            Works with Instagram &middot; More platforms coming soon
           </motion.p>
         </motion.div>
       </section>
@@ -796,8 +688,8 @@ export default function LandingPage() {
           <p className="font-body text-sm text-text-tertiary">Made for curious travelers, everywhere.</p>
           <div className="flex gap-6">
             <a href="/privacy" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Privacy</a>
-            <a href="#" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Terms</a>
-            <a href="#" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Contact</a>
+            <a href="/terms" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Terms</a>
+            <a href="mailto:hello@wanderpin.app" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Contact</a>
           </div>
         </div>
       </footer>

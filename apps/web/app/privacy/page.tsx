@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Privacy Policy — WanderPin',
+  title: 'Privacy Policy',
   description: 'How WanderPin collects, uses, and protects your data.',
 }
 
@@ -15,14 +15,25 @@ export default function PrivacyPage() {
         </a>
 
         <h1 className="font-display text-4xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-text-secondary text-sm mb-10">Last updated: July 1, 2026</p>
+        <p className="text-text-secondary text-sm mb-10">Last updated: October 22, 2026</p>
 
         <section className="space-y-8 font-body text-base leading-relaxed">
 
           <div>
+            <h2 className="font-display text-xl font-bold mb-3">Signing in with Google</h2>
+            <p className="text-text-secondary">
+              WanderPin uses Google Sign-In to create and authenticate your account. When you sign
+              in, Google shares your <span className="text-text-primary">email address, name, and profile picture</span> with
+              us — we never see or store your Google password. We use this only to create your
+              WanderPin account and identify you when you use the app; we don&apos;t request access to
+              your Drive, Gmail, contacts, or any other Google data.
+            </p>
+          </div>
+
+          <div>
             <h2 className="font-display text-xl font-bold mb-3">What we collect</h2>
             <ul className="list-disc list-inside space-y-2 text-text-secondary">
-              <li><span className="text-text-primary font-medium">Email address</span> — used to create and identify your account.</li>
+              <li><span className="text-text-primary font-medium">Account info</span> — email, name, and profile picture from Google Sign-In.</li>
               <li><span className="text-text-primary font-medium">Places you save</span> — name, city, country, coordinates, and notes for each pin you create.</li>
               <li><span className="text-text-primary font-medium">Reel URLs</span> — submitted when you share a travel video to WanderPin so we can extract the location.</li>
             </ul>
