@@ -19,6 +19,7 @@ app.use(express.json())
 app.use(globalLimiter)
 
 app.use('/api/auth/login', loginLimiter)
+app.use('/api/auth/google', loginLimiter)
 app.use('/api/auth/register', registerLimiter)
 app.use('/api/auth', authRouter)
 app.use('/api/pins', pinsRouter)

@@ -7,6 +7,9 @@ const envSchema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('30d'),
+  // Optional so the server can still boot before Google Cloud Console setup
+  // is finished — /auth/google itself checks for this and 503s cleanly if unset.
+  GOOGLE_WEB_CLIENT_ID: z.string().optional(),
   GROQ_API_KEY: z.string(),
   GEMINI_API_KEY: z.string(),
   NOMINATIM_USER_AGENT: z.string().default('WanderPin/1.0'),
@@ -34,6 +37,7 @@ export const config = {
     secret: parsed.data.JWT_SECRET,
     expiresIn: parsed.data.JWT_EXPIRES_IN,
   },
+  googleWebClientId: parsed.data.GOOGLE_WEB_CLIENT_ID,
   groqApiKey: parsed.data.GROQ_API_KEY,
   geminiApiKey: parsed.data.GEMINI_API_KEY,
   nominatimUserAgent: parsed.data.NOMINATIM_USER_AGENT,
