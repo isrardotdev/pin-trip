@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import {
   Bookmark,
@@ -109,17 +109,33 @@ const steps = [
 // people to Instagram DMs for beta access, instead of a native `title` tooltip.
 function AndroidDownloadButton({ size = 'base' }: { size?: 'base' | 'lg' }) {
   const [open, setOpen] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const padding = size === 'lg' ? 'px-10 py-4' : 'px-8 py-4'
+
+  // Mobile browsers simulate a "hover" on the first tap of an element with
+  // hover handlers (which opened the tooltip), then fire the click right
+  // after — if that click toggled, it closed again immediately, so a second
+  // tap was needed to reopen it. Making the click always open (never toggle)
+  // fixes that; tapping outside now closes it instead.
+  useEffect(() => {
+    if (!open) return
+    const handleOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('click', handleOutside)
+    return () => document.removeEventListener('click', handleOutside)
+  }, [open])
 
   return (
     <div
+      ref={wrapperRef}
       className="relative inline-block"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
         aria-describedby="android-beta-tooltip"
         className={`group bg-accent-green text-white font-body font-medium ${padding} rounded-full hover:bg-opacity-90 transition-all shadow-lg shadow-accent-green/25 hover:shadow-xl hover:shadow-accent-green/30 hover:scale-[1.02] active:scale-[0.98]`}
       >
