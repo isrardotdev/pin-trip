@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import {
@@ -15,7 +15,22 @@ import {
   Globe,
   Sparkles,
   Navigation,
+  Mail,
+  X,
 } from 'lucide-react'
+
+// lucide-react dropped brand icons a while back — a plain outlined
+// camera-square is still instantly recognizable as "Instagram" without
+// using their actual protected logo asset.
+function InstagramIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  )
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -172,8 +187,100 @@ function AndroidDownloadButton({ size = 'base' }: { size?: 'base' | 'lg' }) {
   )
 }
 
+function ContactModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  // Escape-to-close + body scroll lock while the modal is open.
+  useEffect(() => {
+    if (!open) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [open, onClose])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-dark-surface/70 backdrop-blur-sm px-6"
+          role="presentation"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-modal-title"
+            className="relative w-full max-w-sm bg-bg-primary rounded-3xl p-8 shadow-2xl shadow-black/40 border border-border-light"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            <h2 id="contact-modal-title" className="font-display text-2xl font-bold text-text-primary mb-2">
+              Get in touch
+            </h2>
+            <p className="font-body text-sm text-text-secondary mb-8 leading-relaxed">
+              Questions, feedback, or want in on the beta? We&apos;d love to hear from you.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://instagram.com/wanderpin.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 bg-white rounded-xl px-4 py-3.5 border border-border-light hover:border-accent-green/40 hover:shadow-md hover:shadow-black/[0.04] transition-all"
+              >
+                <div className="w-10 h-10 rounded-full bg-accent-green/10 flex items-center justify-center text-accent-green flex-shrink-0 group-hover:bg-accent-green group-hover:text-white transition-colors">
+                  <InstagramIcon size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-body font-medium text-sm text-text-primary">Instagram</div>
+                  <div className="font-mono text-xs text-text-tertiary">@wanderpin.app</div>
+                </div>
+              </a>
+
+              <a
+                href="mailto:hello@wanderpin.app"
+                className="group flex items-center gap-4 bg-white rounded-xl px-4 py-3.5 border border-border-light hover:border-accent-green/40 hover:shadow-md hover:shadow-black/[0.04] transition-all"
+              >
+                <div className="w-10 h-10 rounded-full bg-accent-green/10 flex items-center justify-center text-accent-green flex-shrink-0 group-hover:bg-accent-green group-hover:text-white transition-colors">
+                  <Mail size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-body font-medium text-sm text-text-primary">Email</div>
+                  <div className="font-mono text-xs text-text-tertiary">hello@wanderpin.app</div>
+                </div>
+              </a>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [contactOpen, setContactOpen] = useState(false)
 
   return (
     <main className="min-h-screen overflow-hidden">
@@ -705,10 +812,18 @@ export default function LandingPage() {
           <div className="flex gap-6">
             <a href="/privacy" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Privacy</a>
             <a href="/terms" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Terms</a>
-            <a href="mailto:hello@wanderpin.app" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Contact</a>
+            <button
+              type="button"
+              onClick={() => setContactOpen(true)}
+              className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors"
+            >
+              Contact
+            </button>
           </div>
         </div>
       </footer>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
 
     </main>
   )
