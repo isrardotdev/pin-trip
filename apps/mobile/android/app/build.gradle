@@ -4,6 +4,17 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
+// Release upload-key credentials live in android/keystore.properties, which is
+// gitignored. When it's absent (fresh clone, CI without secrets) the release
+// build falls back to debug signing rather than failing outright.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def hasReleaseKeystore = keystoreProps.containsKey('RELEASE_STORE_FILE') &&
+        file(keystoreProps['RELEASE_STORE_FILE']).exists()
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -104,15 +115,21 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (hasReleaseKeystore) {
+            release {
+                storeFile file(keystoreProps['RELEASE_STORE_FILE'])
+                storePassword keystoreProps['RELEASE_STORE_PASSWORD']
+                keyAlias keystoreProps['RELEASE_KEY_ALIAS']
+                keyPassword keystoreProps['RELEASE_KEY_PASSWORD']
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

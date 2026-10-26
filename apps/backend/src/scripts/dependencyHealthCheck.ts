@@ -53,7 +53,7 @@ async function checkGroq() {
 }
 
 // ─── Gemini: verify the planner model is still listed ────────────────────────
-const REQUIRED_GEMINI_MODEL = 'models/gemini-flash-latest'
+const REQUIRED_GEMINI_MODEL = 'models/gemini-3-flash-preview'
 
 async function checkGemini() {
   const apiKey = process.env.GEMINI_API_KEY

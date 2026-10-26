@@ -14,3 +14,11 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
+
+# Release signing — never commit these.
+# Losing app/release.keystore means losing the ability to sign updates with the
+# same upload key. Back it up outside this repo. (debug.keystore is intentionally
+# still tracked; it's a shared throwaway key.)
+keystore.properties
+app/release.keystore
+*.jks

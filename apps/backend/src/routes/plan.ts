@@ -7,6 +7,7 @@ import { authenticate, AuthRequest } from '../middleware/auth'
 import { requirePlannerAccess } from '../middleware/requirePlannerAccess'
 import { planLimiter } from '../middleware/rateLimiter'
 import { logger } from '../logger'
+import { notifyDiscord } from '../lib/discord'
 import type { TripDocument, ChatMessage } from '@wanderpin/shared'
 
 export const planRouter = Router()
@@ -15,6 +16,48 @@ planRouter.use(planLimiter)
 
 const genAI = new GoogleGenerativeAI(config.geminiApiKey)
 const MESSAGE_CAP = 20
+
+// Google rotates and retires Gemini models aggressively, and the convenience
+// aliases ("-latest") can start resolving to a model that accepts the request
+// then never returns — gemini-flash-latest hung indefinitely on 2026-10-26 while
+// pinned versions answered in seconds. Pin explicit models, newest first, and
+// fall through on failure. Same reasoning as withGroqFallback in the reel worker.
+// Order is measured, not guessed (2026-10-26, 5 calls each): gemini-3-flash-preview
+// 5/5 at 1.8s avg, gemini-flash-lite-latest 5/5 at 1.5s, gemini-3.6-flash 3/5
+// (timeouts), gemini-3.5-flash 3/5 at 5.5s. Lite sits last because it is the
+// weakest at multi-day itinerary reasoning — it is a safety net, not a peer.
+const PLANNER_MODELS = ['gemini-3-flash-preview', 'gemini-3.6-flash', 'gemini-flash-lite-latest']
+
+// A hung model must not hold the request open until the client gives up.
+const GEMINI_TIMEOUT_MS = 25_000
+
+async function generateWithFallback(prompt: string[]): Promise<string> {
+  let lastError: unknown
+  for (let i = 0; i < PLANNER_MODELS.length; i++) {
+    const modelName = PLANNER_MODELS[i]
+    try {
+      const model = genAI.getGenerativeModel(
+        { model: modelName, generationConfig: { responseMimeType: 'application/json' } },
+        { timeout: GEMINI_TIMEOUT_MS },
+      )
+      const result = await model.generateContent(prompt)
+      const text = result.response.text()
+      if (i > 0) {
+        logger.warn({ modelName, skipped: PLANNER_MODELS.slice(0, i) }, 'Gemini fallback model used')
+        notifyDiscord(
+          'Gemini fallback model in use',
+          `Planner: primary model(s) [${PLANNER_MODELS.slice(0, i).join(', ')}] failed.\nNow serving from: ${modelName}\n\nUpdate PLANNER_MODELS in plan.ts before the fallback also breaks.`,
+          'warn',
+        )
+      }
+      return text
+    } catch (err) {
+      lastError = err
+      logger.warn({ modelName, err: err instanceof Error ? err.message : err }, 'Gemini model failed, trying next fallback')
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError))
+}
 
 const sendMessageSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -274,12 +317,10 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
   logger.info({ userId: req.userId, pinCount: pins.length, hasDocument: !!currentDoc, message: message.slice(0, 80) }, 'Calling Gemini')
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
-    const result = await model.generateContent([
+    const text = await generateWithFallback([
       systemPrompt + historyContext,
       `USER: ${message}`,
     ])
-    const text = result.response.text()
 
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -336,10 +377,25 @@ planRouter.post('/', requirePlannerAccess, async (req: AuthRequest, res: Respons
     res.json({ success: true, data: aiResponse })
   } catch (err: any) {
     logger.error({ err, userId: req.userId, status: err?.status }, 'Gemini API error')
+
     if (err?.status === 429) {
       res.status(503).json({ success: false, error: 'AI planner is busy right now. Please try again in a moment.', code: 'PLANNER_RATE_LIMITED' })
       return
     }
+
+    // 402 means the Gemini project is out of prepaid credits. It reads as a
+    // generic outage to the user but it is an operator problem, so page us —
+    // the planner stays broken until someone tops up billing.
+    if (err?.status === 402) {
+      notifyDiscord(
+        'Gemini billing exhausted',
+        `POST /plan failed with 402 — prepaid credits depleted.\nTop up at https://ai.studio/projects\n\n${err?.message ?? ''}`,
+      )
+      res.status(503).json({ success: false, error: 'AI planner is temporarily unavailable. We are on it.', code: 'PLANNER_UNAVAILABLE' })
+      return
+    }
+
+    notifyDiscord('Planner failure', `POST /plan failed.\nstatus=${err?.status ?? 'none'}\n${err?.message ?? err}`)
     res.status(500).json({ success: false, error: 'AI planner temporarily unavailable' })
   }
 })
