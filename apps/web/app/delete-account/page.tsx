@@ -54,6 +54,38 @@ export default function DeleteAccountPage() {
           </div>
 
           <div>
+            <h2 className="font-display text-xl font-bold mb-3">
+              Delete your saved places without deleting your account
+            </h2>
+            <p className="text-text-secondary mb-3">
+              If you want to erase what you&apos;ve saved but keep your account, you can delete your
+              places on their own — individually or all at once.
+            </p>
+            <p className="text-text-primary font-medium mb-2">Delete every place you&apos;ve saved:</p>
+            <ol className="list-decimal list-inside space-y-2 text-text-secondary mb-4">
+              <li>Open WanderPin and go to the <span className="text-text-primary font-medium">Profile</span> tab.</li>
+              <li>Tap <span className="text-text-primary font-medium">Clear All Pins</span>.</li>
+              <li>Confirm. Every saved place, along with its notes, is deleted immediately.</li>
+            </ol>
+            <p className="text-text-primary font-medium mb-2">Delete a single place:</p>
+            <ol className="list-decimal list-inside space-y-2 text-text-secondary mb-4">
+              <li>Tap the place on your map or in your list of pins.</li>
+              <li>Tap <span className="text-text-primary font-medium">Delete pin</span> at the bottom of the detail sheet.</li>
+            </ol>
+            <p className="text-text-secondary">
+              Your account, email, and sign-in stay active either way. You can also request this by
+              email at{' '}
+              <a
+                href="mailto:hello@wanderpin.app?subject=Delete%20my%20WanderPin%20data"
+                className="text-accent-green underline"
+              >
+                hello@wanderpin.app
+              </a>
+              {' '}— we respond within 30 days.
+            </p>
+          </div>
+
+          <div>
             <h2 className="font-display text-xl font-bold mb-3">What gets deleted</h2>
             <p className="text-text-secondary mb-3">
               Everything tied to your account is removed permanently and cannot be recovered:
@@ -72,15 +104,6 @@ export default function DeleteAccountPage() {
               Encrypted database backups are kept for up to 30 days before rolling off, and server
               error logs containing your account ID (never your email or saved places) are retained
               for up to 30 days. Neither is used for any purpose after deletion.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="font-display text-xl font-bold mb-3">Just want to clear your pins?</h2>
-            <p className="text-text-secondary">
-              If you want to start fresh without losing your account, use{' '}
-              <span className="text-text-primary font-medium">Clear All Pins</span> in the Profile
-              tab instead. Your account stays active.
             </p>
           </div>
 
