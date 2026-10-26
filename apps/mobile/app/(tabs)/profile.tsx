@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native'
 import { useAuthStore } from '../../src/stores/authStore'
 import { usePinsStore } from '../../src/stores/pinsStore'
 import { colors, fontSizes, spacing, radius, shadows } from '../../src/constants/theme'
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, deleteAccount } = useAuthStore()
   const { pins, deletePin } = usePinsStore()
 
   const initials = user?.name
@@ -40,6 +40,38 @@ export default function ProfileScreen() {
     )
   }
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This permanently deletes your account, all your pins, and your saved itineraries. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation — this is irreversible and Google Sign-In
+            // means there is no password prompt standing between tap and wipe.
+            Alert.alert('Are you sure?', 'Your account and all its data will be erased immediately.', [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete Forever',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteAccount()
+                  } catch {
+                    Alert.alert('Could not delete account', 'Something went wrong. Please try again, or email hello@wanderpin.app.')
+                  }
+                },
+              },
+            ])
+          },
+        },
+      ]
+    )
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -69,8 +101,28 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <View style={styles.settingsCard}>
+          <TouchableOpacity
+            style={[styles.settingsRow, styles.settingsRowBorder]}
+            onPress={() => Linking.openURL('https://wanderpin.app/privacy')}
+          >
+            <Text style={styles.settingsLabel}>Privacy Policy</Text>
+            <Text style={styles.settingsChevron}>↗</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.settingsRow, styles.settingsRowBorder]}
+            onPress={() => Linking.openURL('https://wanderpin.app/terms')}
+          >
+            <Text style={styles.settingsLabel}>Terms of Service</Text>
+            <Text style={styles.settingsChevron}>↗</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.settingsRow, styles.settingsRowBorder]} onPress={handleClearPins}>
             <Text style={[styles.settingsLabel, { color: colors.accentRed }]}>Clear All Pins</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.settingsRow, styles.settingsRowBorder]} onPress={handleDeleteAccount}>
+            <Text style={[styles.settingsLabel, { color: colors.accentRed }]}>Delete Account</Text>
           </TouchableOpacity>
 
           <View style={styles.settingsRow}>
@@ -163,6 +215,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.base,
     fontFamily: 'DMSans-Regular',
     color: colors.textPrimary,
+  },
+  settingsChevron: {
+    fontSize: fontSizes.base,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textTertiary,
   },
   settingsValue: {
     fontSize: fontSizes.sm,

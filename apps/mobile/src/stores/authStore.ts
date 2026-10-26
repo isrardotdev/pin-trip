@@ -18,6 +18,7 @@ interface AuthState {
   register: (email: string, password: string, name?: string) => Promise<void>
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
+  deleteAccount: () => Promise<void>
   hydrate: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -96,6 +97,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.deleteItemAsync('auth_token')
     try { await GoogleSignin.signOut() } catch {}
     set({ user: null, token: null })
+  },
+
+  deleteAccount: async () => {
+    set({ isLoading: true })
+    try {
+      await api.delete('/auth/me')
+    } catch (err) {
+      set({ isLoading: false })
+      throw err
+    }
+    // Only clear local state once the server confirms deletion, otherwise the
+    // user is signed out of an account that still exists.
+    await SecureStore.deleteItemAsync('auth_token')
+    try { await GoogleSignin.revokeAccess() } catch {}
+    try { await GoogleSignin.signOut() } catch {}
+    set({ user: null, token: null, isLoading: false })
   },
 
   // Call after any action that changes plan or aiMessagesUsed on the server

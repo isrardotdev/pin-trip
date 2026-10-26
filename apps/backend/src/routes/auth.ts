@@ -193,3 +193,24 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: 'Failed to fetch user' })
   }
 })
+
+authRouter.delete('/me', authenticate, async (req: AuthRequest, res: Response) => {
+  logger.info({ userId: req.userId }, 'DELETE /auth/me')
+  const userId = req.userId as string
+
+  try {
+    // UnresolvedPin carries a userId but has no FK relation to User, so it is
+    // not covered by the onDelete: Cascade that clears pins, conversations and
+    // saved itineraries. Delete it explicitly or it outlives the account.
+    await prisma.$transaction([
+      prisma.unresolvedPin.deleteMany({ where: { userId } }),
+      prisma.user.delete({ where: { id: userId } }),
+    ])
+
+    logger.info({ userId }, 'Account and all associated data deleted')
+    res.json({ success: true, data: { deleted: true } })
+  } catch (err) {
+    logger.error({ err, userId }, 'Account deletion failed')
+    res.status(500).json({ success: false, error: 'Failed to delete account' })
+  }
+})

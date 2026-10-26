@@ -812,6 +812,7 @@ export default function LandingPage() {
           <div className="flex gap-6">
             <a href="/privacy" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Privacy</a>
             <a href="/terms" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Terms</a>
+            <a href="/delete-account" className="font-body text-sm text-text-tertiary hover:text-accent-green-light transition-colors">Delete account</a>
             <button
               type="button"
               onClick={() => setContactOpen(true)}
