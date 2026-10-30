@@ -26,8 +26,17 @@ export default function WelcomeScreen() {
     try {
       await loginWithGoogle()
     } catch (err: any) {
-      const msg = err?.response?.data?.error || 'Google sign-in failed. Please try again.'
-      Alert.alert('Sign-In Failed', msg)
+      // Keep a short diagnostic suffix. A bare "try again" made a Play-signing
+      // SHA-1 mismatch, a dead backend and a cancelled flow all look identical,
+      // which cost real debugging time — but testers shouldn't see raw SDK URLs.
+      const serverMsg = err?.response?.data?.error
+      const ref = serverMsg ?? (err?.code != null ? `error ${err.code}` : null)
+      Alert.alert(
+        'Sign-In Failed',
+        ref
+          ? `Google sign-in failed. Please try again.\n\n(${ref})`
+          : 'Google sign-in failed. Please try again.',
+      )
     } finally {
       setIsSigningIn(false)
     }

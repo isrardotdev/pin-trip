@@ -499,8 +499,14 @@ export default function PlanScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={84}
+      // Android needs 'height' here despite the manifest's adjustResize:
+      // edgeToEdgeEnabled=true stops the system resizing the window for the
+      // keyboard, so without this the input bar sits behind it.
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // The view is inset by the tab bar, which is 60 + bottom inset tall
+      // (see (tabs)/_layout.tsx) — a hardcoded guess misaligns on devices
+      // with a gesture bar.
+      keyboardVerticalOffset={60 + insets.bottom}
     >
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>

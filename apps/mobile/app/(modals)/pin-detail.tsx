@@ -59,7 +59,12 @@ export default function PinDetailModal() {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.scrollContent}>
       <View style={styles.handle} />
 
       {pin.sourceThumbnailUrl ? (
@@ -126,6 +131,7 @@ export default function PinDetailModal() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { paddingBottom: 280 },
   container: { flex: 1, backgroundColor: colors.bgPrimary },
   handle: {
     width: 40,
